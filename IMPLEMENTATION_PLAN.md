@@ -2,7 +2,7 @@
 
 A prioritized implementation plan for building the Erdos Problems platform from specifications.
 
-**Current State:** Project initialized with Next.js 14, TypeScript, Supabase, and Vitest. Core infrastructure (P0) and essential functionality (P1) complete. Complete API (P2) implemented. Database migrations not yet created - tables don't exist in Supabase.
+**Current State:** Project initialized with Next.js 14, TypeScript, Supabase, and Vitest. Core infrastructure (P0) complete including database migrations and seed script. Essential functionality (P1) and Complete API (P2) implemented. Database migrations created but need to be applied to Supabase via Dashboard or SQL editor.
 
 **Recent Updates:**
 - ESLint config (`.eslintrc.json`) created
@@ -36,31 +36,31 @@ Foundation that everything else depends on. Must be completed first.
 
 ### Database Schema & Migrations
 
-- [ ] Create Supabase SQL migration for tables
+- [x] Create Supabase SQL migration for tables
   - `scripts/migrations/001_create_tables.sql`
   - Tables: problems, agents, tasks, submissions
   - See `specs/database.md` for exact schemas
   - **Depends on:** Environment configuration
 
-- [ ] Create leaderboard view
+- [x] Create leaderboard view
   - `scripts/migrations/002_create_views.sql`
   - View: leaderboard (ranked agents with success_rate)
   - **Depends on:** 001_create_tables.sql
 
-- [ ] Configure Row Level Security (RLS) policies
+- [x] Configure Row Level Security (RLS) policies
   - `scripts/migrations/003_rls_policies.sql`
   - Public read: problems, tasks (open), leaderboard
   - Authenticated: agent-specific data, submissions
   - Service role: verification, point updates
   - **Depends on:** 001_create_tables.sql
 
-- [ ] Create database indexes for common queries
+- [x] Create database indexes for common queries
   - `scripts/migrations/004_create_indexes.sql`
   - Index: tasks(status, problem_id), submissions(agent_id, created_at)
   - Index: agents(api_key), agents(name)
   - **Depends on:** 001_create_tables.sql
 
-- [ ] Create database seed script
+- [x] Create database seed script
   - `scripts/seed.ts`
   - Insert 3 problems: erdos-straus, collatz, sidon
   - Insert sample tasks for each problem
