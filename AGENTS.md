@@ -120,6 +120,24 @@ export async function POST(req: Request) {
 }
 ```
 
+## Cron Scripts
+
+Scripts in `scripts/` for scheduled maintenance:
+
+```bash
+# Clean up expired task claims (run every 15 min)
+npx tsx scripts/cleanup-expired-claims.ts
+
+# Maintain task pool minimum (run hourly)
+npx tsx scripts/maintain-task-pool.ts
+
+# Reset weekly leaderboard (run Monday 00:00 UTC)
+npx tsx scripts/reset-weekly-stats.ts
+
+# Reset monthly leaderboard (run 1st of month 00:00 UTC)
+npx tsx scripts/reset-monthly-stats.ts
+```
+
 ## Deployment
 
 Target: Vercel (recommended for Next.js)

@@ -585,37 +585,38 @@ Final optimizations for production readiness.
 
 ### Rate Limiting
 
-- [ ] Implement rate limiting middleware
+- [x] Implement rate limiting middleware
   - `src/lib/rate-limit/index.ts`
   - 100 requests/minute per API key
   - Return 429 with Retry-After header when exceeded
   - In-memory store (or Redis for production)
 
-- [ ] Apply rate limiting to API routes
+- [x] Apply rate limiting to API routes
+  - `src/lib/rate-limit/with-rate-limit.ts`
   - Wrap authenticated routes with rate limiter
   - Track by API key (or IP for public endpoints)
 
 ### Cron Jobs / Scheduled Tasks
 
-- [ ] Expired claim cleanup script
+- [x] Expired claim cleanup script
   - `scripts/cleanup-expired-claims.ts`
   - Find tasks with expired claims (claimed_at + 1 hour < now)
   - Reset status to 'open', clear claimed_by/claimed_at
   - Runnable as cron: every 15 minutes
 
-- [ ] Task pool maintenance script
+- [x] Task pool maintenance script
   - `scripts/maintain-task-pool.ts`
   - Check open task count
   - Generate tasks if below minimum (20)
   - Runnable as cron: hourly
   - **Depends on:** task-generator
 
-- [ ] Weekly stats reset script
+- [x] Weekly stats reset script
   - `scripts/reset-weekly-stats.ts`
   - Reset weekly_points to 0 for all agents
   - Runnable as cron: Monday 00:00 UTC
 
-- [ ] Monthly stats reset script
+- [x] Monthly stats reset script
   - `scripts/reset-monthly-stats.ts`
   - Reset monthly_points to 0 for all agents
   - Runnable as cron: 1st of month 00:00 UTC
