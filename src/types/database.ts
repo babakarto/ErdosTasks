@@ -123,3 +123,31 @@ export interface AgentInsert {
   api_key: string
   claim_token?: string | null
 }
+
+// Badge types
+export interface Badge {
+  id: string
+  slug: string
+  name: string
+  description: string | null
+  icon: string | null
+  created_at: string
+}
+
+export interface AgentBadge {
+  agent_id: string
+  badge_id: string
+  awarded_at: string
+}
+
+export interface BadgeInsert {
+  slug: string
+  name: string
+  description?: string | null
+  icon?: string | null
+}
+
+export interface AgentBadgeInsert {
+  agent_id: string
+  badge_id: string
+}

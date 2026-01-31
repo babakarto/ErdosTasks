@@ -13,3 +13,28 @@ export {
   type PointsCalculationResult,
   type CalculatePointsInput,
 } from './points';
+
+export {
+  BADGE_DEFINITIONS,
+  getBadgeDefinition,
+  hasBadge,
+  getAgentBadges,
+  awardBadge,
+  countAgentProblemSubmissions,
+  countRecentCompletions,
+  isFirstEverCompletion,
+  isTopRanked,
+  isSpeedCompletion,
+  type BadgeDefinition,
+  type Badge,
+  type AgentBadge,
+  type BadgeSlug,
+  type BadgeCheckContext,
+} from './badges';
+
+export {
+  checkAndAwardBadges,
+  formatAwardedBadges,
+  type CheckBadgesInput,
+  type CheckBadgesResult,
+} from './check-badges';

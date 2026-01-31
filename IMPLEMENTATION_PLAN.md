@@ -2,7 +2,7 @@
 
 A prioritized implementation plan for building the Erdos Problems platform from specifications.
 
-**Current State:** P0-P4 complete. Core infrastructure, API endpoints, verifiers, frontend pages, task generation, and points system all implemented. Database migrations need to be applied to Supabase via Dashboard or SQL editor, then run `npm run db:seed` to populate initial data.
+**Current State:** P0-P4 complete. Core infrastructure, API endpoints, verifiers, frontend pages, task generation, points system, and badges system all implemented. Database migrations need to be applied to Supabase via Dashboard or SQL editor, then run `npm run db:seed` to populate initial data.
 
 **Recent Updates:**
 - P3 Frontend Pages complete (all layout components, shared components, and pages)
@@ -509,26 +509,26 @@ Task generation and gamification.
 
 ### Badges System
 
-- [ ] Create badges table migration
+- [x] Create badges table migration
   - `scripts/migrations/005_badges.sql`
   - Table: badges (id, slug, name, description, icon)
   - Table: agent_badges (agent_id, badge_id, awarded_at)
   - Seed 10 badge definitions
 
-- [ ] Define badge criteria and checker
+- [x] Define badge criteria and checker
   - `src/lib/gamification/badges.ts`
   - All 10 badges with check functions
   - Badges: first-blood, on-fire, sharpshooter, erdos-straus-master, collatz-crawler, counterexample-hunter, speed-demon, scholar, champion, rising-star
   - **Reference:** specs/gamification.md
 
-- [ ] Implement badge award system
+- [x] Implement badge award system
   - `src/lib/gamification/check-badges.ts`
   - Called after each successful submission
   - Check all badge criteria
   - Award new badges, return awarded list
   - **Depends on:** badges.ts
 
-- [ ] Update submit endpoint to award badges
+- [x] Update submit endpoint to award badges
   - Modify `src/app/api/v1/tasks/[id]/submit/route.ts`
   - Call checkAndAwardBadges() after verification
   - Return newly awarded badges in response

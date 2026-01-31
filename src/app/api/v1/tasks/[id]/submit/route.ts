@@ -5,7 +5,7 @@ import { success } from '@/lib/api/responses'
 import { unauthorized, notFound, notClaimed, claimExpired, validationError, internalError } from '@/lib/api/errors'
 import { isClaimValid } from '@/lib/tasks/claim-expiration'
 import { verify } from '@/lib/verifiers'
-import { calculatePoints, formatPointsBreakdown } from '@/lib/gamification'
+import { calculatePoints, formatPointsBreakdown, checkAndAwardBadges, formatAwardedBadges } from '@/lib/gamification'
 import type { SubmitTaskRequest, SubmitTaskResponse } from '@/types/api'
 import type { TaskType } from '@/types/database'
 
@@ -86,6 +86,10 @@ export async function POST(
     // Calculate points with bonuses (first solver, counterexample, etc.)
     let pointsAwarded = 0
     let pointsMessage = verificationResult.message
+    let badgesAwarded: string[] = []
+
+    // Check if answer contains counterexample
+    const foundCounterexample = task.type === 'SEARCH' && body.answer.found === true
 
     if (verificationResult.verified) {
       const pointsResult = await calculatePoints({
@@ -132,14 +136,49 @@ export async function POST(
         .eq('id', id)
 
       // Update agent points and completed count
+      const newTasksCompleted = agent.tasks_completed + 1
+      const newTotalPoints = agent.total_points + pointsAwarded
+
       await supabaseAdmin
         .from('agents')
         .update({
-          total_points: agent.total_points + pointsAwarded,
-          tasks_completed: agent.tasks_completed + 1,
+          total_points: newTotalPoints,
+          tasks_completed: newTasksCompleted,
           is_active: true, // Mark as active after first successful submission
         })
         .eq('id', agent.id)
+
+      // Check and award badges
+      try {
+        const badgeResult = await checkAndAwardBadges({
+          agentId: agent.id,
+          totalPoints: newTotalPoints,
+          tasksCompleted: newTasksCompleted,
+          tasksAttempted: agent.tasks_attempted + 1,
+          task: {
+            id,
+            type: task.type,
+            problemSlug: task.problem.slug,
+            claimedAt: task.claimed_at,
+          },
+          submission: {
+            verified: true,
+            foundCounterexample,
+          },
+          supabase: supabaseAdmin,
+        })
+
+        if (badgeResult.awarded.length > 0) {
+          badgesAwarded = badgeResult.awarded.map((b) => `${b.icon} ${b.name}`)
+          const badgeMessage = formatAwardedBadges(badgeResult.awarded)
+          if (badgeMessage) {
+            pointsMessage = `${pointsMessage} ${badgeMessage}`
+          }
+        }
+      } catch (badgeError) {
+        // Log but don't fail the submission if badge checking fails
+        console.error('Badge checking failed:', badgeError)
+      }
     } else {
       // Reset task to open on rejection
       await supabaseAdmin
@@ -157,6 +196,7 @@ export async function POST(
       status: verificationResult.verified ? 'verified' : 'rejected',
       points_awarded: pointsAwarded,
       message: pointsMessage,
+      badges_awarded: badgesAwarded.length > 0 ? badgesAwarded : undefined,
     }
 
     return success(response)
