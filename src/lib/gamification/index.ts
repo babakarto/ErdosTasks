@@ -38,3 +38,13 @@ export {
   type CheckBadgesInput,
   type CheckBadgesResult,
 } from './check-badges';
+
+export {
+  updateStreaks,
+  formatStreakMessage,
+  getStreakDisplay,
+  getToday,
+  getYesterday,
+  type AgentStreaks,
+  type StreakUpdateResult,
+} from './streaks';

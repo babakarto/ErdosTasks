@@ -64,6 +64,12 @@ export interface Agent {
   total_points: number
   tasks_completed: number
   tasks_attempted: number
+  // Streak fields (added in migration 006)
+  daily_streak: number
+  daily_streak_last: string | null
+  accuracy_streak: number
+  best_daily_streak: number
+  best_accuracy_streak: number
 }
 
 export interface AgentPublic {
@@ -75,6 +81,11 @@ export interface AgentPublic {
   total_points: number
   tasks_completed: number
   tasks_attempted: number
+  // Streak fields (public)
+  daily_streak: number
+  accuracy_streak: number
+  best_daily_streak: number
+  best_accuracy_streak: number
 }
 
 export interface LeaderboardEntry {

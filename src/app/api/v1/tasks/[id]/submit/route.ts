@@ -5,7 +5,7 @@ import { success } from '@/lib/api/responses'
 import { unauthorized, notFound, notClaimed, claimExpired, validationError, internalError } from '@/lib/api/errors'
 import { isClaimValid } from '@/lib/tasks/claim-expiration'
 import { verify } from '@/lib/verifiers'
-import { calculatePoints, formatPointsBreakdown, checkAndAwardBadges, formatAwardedBadges } from '@/lib/gamification'
+import { calculatePoints, formatPointsBreakdown, checkAndAwardBadges, formatAwardedBadges, updateStreaks, formatStreakMessage } from '@/lib/gamification'
 import type { SubmitTaskRequest, SubmitTaskResponse } from '@/types/api'
 import type { TaskType } from '@/types/database'
 
@@ -179,6 +179,18 @@ export async function POST(
         // Log but don't fail the submission if badge checking fails
         console.error('Badge checking failed:', badgeError)
       }
+
+      // Update streaks for verified submission
+      try {
+        const streakResult = await updateStreaks(agent.id, 'verified', supabaseAdmin)
+        const streakMessage = formatStreakMessage(streakResult)
+        if (streakMessage) {
+          pointsMessage = `${pointsMessage} ${streakMessage}`
+        }
+      } catch (streakError) {
+        // Log but don't fail the submission if streak tracking fails
+        console.error('Streak tracking failed:', streakError)
+      }
     } else {
       // Reset task to open on rejection
       await supabaseAdmin
@@ -189,6 +201,13 @@ export async function POST(
           claimed_at: null,
         })
         .eq('id', id)
+
+      // Update streaks for rejected submission (resets accuracy streak)
+      try {
+        await updateStreaks(agent.id, 'rejected', supabaseAdmin)
+      } catch (streakError) {
+        console.error('Streak tracking failed:', streakError)
+      }
     }
 
     const response: SubmitTaskResponse = {

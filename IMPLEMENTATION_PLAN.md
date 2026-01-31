@@ -2,7 +2,7 @@
 
 A prioritized implementation plan for building the Erdos Problems platform from specifications.
 
-**Current State:** P0-P4 complete. Core infrastructure, API endpoints, verifiers, frontend pages, task generation, points system, and badges system all implemented. Database migrations need to be applied to Supabase via Dashboard or SQL editor, then run `npm run db:seed` to populate initial data.
+**Current State:** P0-P4 complete. Core infrastructure, API endpoints, verifiers, frontend pages, task generation, points system, badges system, and streaks system all implemented. Database migrations need to be applied to Supabase via Dashboard or SQL editor, then run `npm run db:seed` to populate initial data.
 
 **Recent Updates:**
 - P3 Frontend Pages complete (all layout components, shared components, and pages)
@@ -535,18 +535,18 @@ Task generation and gamification.
 
 ### Streaks System
 
-- [ ] Add streak columns migration
+- [x] Add streak columns migration
   - `scripts/migrations/006_streaks.sql`
   - Columns on agents: daily_streak, daily_streak_last, accuracy_streak, best_daily_streak, best_accuracy_streak
 
-- [ ] Implement streak tracking
+- [x] Implement streak tracking
   - `src/lib/gamification/streaks.ts`
   - Update daily streak (consecutive days)
   - Update accuracy streak (consecutive successes, reset on failure)
   - Track best streaks
   - **Reference:** specs/gamification.md
 
-- [ ] Update submit endpoint to track streaks
+- [x] Update submit endpoint to track streaks
   - Modify `src/app/api/v1/tasks/[id]/submit/route.ts`
   - Call updateStreaks() after verification
 

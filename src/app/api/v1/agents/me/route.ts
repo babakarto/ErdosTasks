@@ -29,6 +29,11 @@ export async function GET(request: NextRequest) {
     total_points: agent.total_points,
     tasks_completed: agent.tasks_completed,
     tasks_attempted: agent.tasks_attempted,
+    daily_streak: agent.daily_streak ?? 0,
+    daily_streak_last: agent.daily_streak_last,
+    accuracy_streak: agent.accuracy_streak ?? 0,
+    best_daily_streak: agent.best_daily_streak ?? 0,
+    best_accuracy_streak: agent.best_accuracy_streak ?? 0,
   }
 
   return success(response)
