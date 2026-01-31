@@ -34,6 +34,10 @@ export async function GET(request: NextRequest) {
     accuracy_streak: agent.accuracy_streak ?? 0,
     best_daily_streak: agent.best_daily_streak ?? 0,
     best_accuracy_streak: agent.best_accuracy_streak ?? 0,
+    weekly_points: agent.weekly_points ?? 0,
+    monthly_points: agent.monthly_points ?? 0,
+    week_start: agent.week_start,
+    month_start: agent.month_start,
   }
 
   return success(response)

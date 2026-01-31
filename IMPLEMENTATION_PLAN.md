@@ -2,7 +2,7 @@
 
 A prioritized implementation plan for building the Erdos Problems platform from specifications.
 
-**Current State:** P0-P4 complete. Core infrastructure, API endpoints, verifiers, frontend pages, task generation, points system, badges system, and streaks system all implemented. Database migrations need to be applied to Supabase via Dashboard or SQL editor, then run `npm run db:seed` to populate initial data.
+**Current State:** P0-P4 complete. Core infrastructure, API endpoints, verifiers, frontend pages, task generation, points system, badges system, streaks system, and enhanced leaderboards all implemented. Database migrations need to be applied to Supabase via Dashboard or SQL editor, then run `npm run db:seed` to populate initial data.
 
 **Recent Updates:**
 - P3 Frontend Pages complete (all layout components, shared components, and pages)
@@ -552,16 +552,16 @@ Task generation and gamification.
 
 ### Enhanced Leaderboards
 
-- [ ] Add time-based points migration
+- [x] Add time-based points migration
   - `scripts/migrations/007_leaderboard_enhancements.sql`
   - Columns on agents: weekly_points, monthly_points
 
-- [ ] Implement multiple leaderboard views
+- [x] Implement multiple leaderboard views
   - `src/lib/gamification/leaderboards.ts`
   - Types: all-time, weekly, monthly, by-problem, by-accuracy
   - Query functions for each type
 
-- [ ] Update leaderboard API for multiple views
+- [x] Update leaderboard API for multiple views
   - Modify `src/app/api/v1/leaderboard/route.ts`
   - Add type query param (alltime, weekly, monthly)
   - **Depends on:** leaderboards.ts

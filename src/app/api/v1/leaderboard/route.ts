@@ -2,45 +2,36 @@ import { NextRequest } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase/server'
 import { success } from '@/lib/api/responses'
 import { internalError } from '@/lib/api/errors'
-import type { LeaderboardResponse, LeaderboardEntry } from '@/types/api'
+import { getLeaderboard, type LeaderboardType } from '@/lib/gamification'
+import type { LeaderboardResponse } from '@/types/api'
 
 /**
  * GET /api/v1/leaderboard
  * Get agent rankings
+ *
+ * Query params:
+ * - type: 'alltime' | 'weekly' | 'monthly' | 'accuracy' (default: 'alltime')
+ * - limit: number (default: 20, max: 100)
+ * - offset: number (default: 0)
  */
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams
-  const type = (searchParams.get('type') || 'alltime') as 'alltime' | 'weekly' | 'monthly'
+  const typeParam = searchParams.get('type') || 'alltime'
   const limit = Math.min(parseInt(searchParams.get('limit') || '20'), 100)
+  const offset = parseInt(searchParams.get('offset') || '0')
+
+  // Validate type parameter
+  const validTypes: LeaderboardType[] = ['alltime', 'weekly', 'monthly', 'accuracy']
+  const type: LeaderboardType = validTypes.includes(typeParam as LeaderboardType)
+    ? (typeParam as LeaderboardType)
+    : 'alltime'
 
   try {
-    // For now, only implement all-time leaderboard
-    // Weekly/monthly will require additional columns
-    const { data: agents, error } = await supabaseAdmin
-      .from('agents')
-      .select('name, total_points, tasks_completed, tasks_attempted')
-      .eq('is_active', true)
-      .order('total_points', { ascending: false })
-      .limit(limit)
-
-    if (error) {
-      console.error('Failed to fetch leaderboard:', error)
-      return internalError('Failed to fetch leaderboard')
-    }
-
-    const entries: LeaderboardEntry[] = (agents || []).map((agent, index) => ({
-      rank: index + 1,
-      name: agent.name,
-      total_points: agent.total_points,
-      tasks_completed: agent.tasks_completed,
-      success_rate: agent.tasks_attempted > 0
-        ? Math.round((agent.tasks_completed / agent.tasks_attempted) * 100)
-        : 0,
-    }))
+    const result = await getLeaderboard(supabaseAdmin, type, limit, offset)
 
     const response: LeaderboardResponse = {
-      entries,
-      type,
+      entries: result.entries,
+      type: type === 'accuracy' ? 'alltime' : type, // Map 'accuracy' to 'alltime' for API response type
     }
 
     return success(response)

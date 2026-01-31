@@ -5,7 +5,7 @@ import { success } from '@/lib/api/responses'
 import { unauthorized, notFound, notClaimed, claimExpired, validationError, internalError } from '@/lib/api/errors'
 import { isClaimValid } from '@/lib/tasks/claim-expiration'
 import { verify } from '@/lib/verifiers'
-import { calculatePoints, formatPointsBreakdown, checkAndAwardBadges, formatAwardedBadges, updateStreaks, formatStreakMessage } from '@/lib/gamification'
+import { calculatePoints, formatPointsBreakdown, checkAndAwardBadges, formatAwardedBadges, updateStreaks, formatStreakMessage, updateTimeBasedPoints } from '@/lib/gamification'
 import type { SubmitTaskRequest, SubmitTaskResponse } from '@/types/api'
 import type { TaskType } from '@/types/database'
 
@@ -190,6 +190,13 @@ export async function POST(
       } catch (streakError) {
         // Log but don't fail the submission if streak tracking fails
         console.error('Streak tracking failed:', streakError)
+      }
+
+      // Update time-based points (weekly/monthly) for leaderboards
+      try {
+        await updateTimeBasedPoints(agent.id, pointsAwarded, supabaseAdmin)
+      } catch (timePointsError) {
+        console.error('Time-based points update failed:', timePointsError)
       }
     } else {
       // Reset task to open on rejection

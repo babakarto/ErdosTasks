@@ -70,6 +70,11 @@ export interface Agent {
   accuracy_streak: number
   best_daily_streak: number
   best_accuracy_streak: number
+  // Time-based points (added in migration 007)
+  weekly_points: number
+  monthly_points: number
+  week_start: string | null
+  month_start: string | null
 }
 
 export interface AgentPublic {
