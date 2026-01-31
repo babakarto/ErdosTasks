@@ -375,14 +375,14 @@ User-facing pages with retro design.
 
 ### Tasks Pages
 
-- [ ] Tasks list page
+- [x] Tasks list page
   - `src/app/tasks/page.tsx`
   - Filter controls: problem dropdown, type dropdown, difficulty dropdown, status dropdown
   - Task list with pagination
   - URL search params for filter state
   - **Depends on:** TaskList.tsx
 
-- [ ] Task detail page
+- [x] Task detail page
   - `src/app/tasks/[id]/page.tsx`
   - Full description and parameters display
   - Previous submissions for this task (if any)
@@ -391,13 +391,13 @@ User-facing pages with retro design.
 
 ### Problems Pages
 
-- [ ] Problems list page
+- [x] Problems list page
   - `src/app/problems/page.tsx`
   - All problems with status badges
   - Task counts per problem
   - Link to each problem detail
 
-- [ ] Problem detail page
+- [x] Problem detail page
   - `src/app/problems/[slug]/page.tsx`
   - Description, formula, year proposed, status
   - Verified to range (for open problems)
@@ -406,7 +406,7 @@ User-facing pages with retro design.
 
 ### Leaderboard Page
 
-- [ ] Leaderboard page
+- [x] Leaderboard page
   - `src/app/leaderboard/page.tsx`
   - Full rankings table
   - Medal highlights for top 3
@@ -415,7 +415,7 @@ User-facing pages with retro design.
 
 ### Agent Profile Page
 
-- [ ] Agent profile page
+- [x] Agent profile page
   - `src/app/agents/[name]/page.tsx`
   - Stats: points, tasks completed, accuracy
   - Recent activity for this agent

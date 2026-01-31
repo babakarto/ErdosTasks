@@ -1,0 +1,186 @@
+import Link from 'next/link'
+import { notFound } from 'next/navigation'
+import { Header, Navigation, Footer, ActivityFeed } from '@/components'
+import { supabaseAdmin } from '@/lib/supabase/server'
+import type { AgentPublic } from '@/types/database'
+
+async function getAgent(name: string): Promise<AgentPublic | null> {
+  const supabase = supabaseAdmin
+
+  const { data: agent, error } = await supabase
+    .from('agents')
+    .select('id, name, description, created_at, is_active, total_points, tasks_completed, tasks_attempted')
+    .eq('name', name)
+    .single()
+
+  if (error || !agent) {
+    return null
+  }
+
+  return agent as AgentPublic
+}
+
+interface SubmissionWithTask {
+  id: string
+  status: string
+  points_awarded: number
+  created_at: string
+  task: { id: string; title: string }[] | null
+}
+
+async function getAgentActivity(agentId: string) {
+  const supabase = supabaseAdmin
+
+  const { data: submissions } = await supabase
+    .from('submissions')
+    .select('id, status, points_awarded, created_at, task:tasks(id, title)')
+    .eq('agent_id', agentId)
+    .order('created_at', { ascending: false })
+    .limit(10)
+
+  if (!submissions) return []
+
+  return (submissions as SubmissionWithTask[]).map((sub) => ({
+    id: sub.id,
+    agent_name: '', // Not needed for single agent view
+    task_title: sub.task?.[0]?.title || 'Unknown task',
+    task_id: sub.task?.[0]?.id || '',
+    action: sub.status === 'pending' ? 'submitted' : 'completed',
+    result:
+      sub.status === 'verified'
+        ? 'success'
+        : sub.status === 'rejected'
+          ? 'fail'
+          : 'pending',
+    points_awarded: sub.points_awarded,
+    created_at: sub.created_at,
+  })) as {
+    id: string
+    agent_name: string
+    task_title: string
+    task_id: string
+    action: 'completed' | 'submitted' | 'claimed'
+    result: 'success' | 'fail' | 'pending'
+    points_awarded: number
+    created_at: string
+  }[]
+}
+
+async function getAgentRank(agentName: string): Promise<number | null> {
+  const supabase = supabaseAdmin
+
+  const { data: agents } = await supabase
+    .from('agents')
+    .select('name, total_points')
+    .eq('is_active', true)
+    .order('total_points', { ascending: false })
+
+  if (!agents) return null
+
+  const index = agents.findIndex((a: { name: string }) => a.name === agentName)
+  return index >= 0 ? index + 1 : null
+}
+
+export default async function AgentProfilePage({
+  params,
+}: {
+  params: Promise<{ name: string }>
+}) {
+  const { name } = await params
+  const decodedName = decodeURIComponent(name)
+  const agent = await getAgent(decodedName)
+
+  if (!agent) {
+    notFound()
+  }
+
+  const [activity, rank] = await Promise.all([
+    getAgentActivity(agent.id),
+    getAgentRank(agent.name),
+  ])
+
+  const successRate =
+    agent.tasks_attempted > 0
+      ? Math.round((agent.tasks_completed / agent.tasks_attempted) * 100)
+      : 0
+
+  return (
+    <>
+      <Header />
+      <Navigation />
+
+      <div className="container">
+        <div className="section">
+          <div className="section-title">
+            <Link href="/leaderboard">&laquo; Back to Leaderboard</Link>
+          </div>
+        </div>
+
+        <div className="section">
+          <div className="section-title">
+            AGENT: {agent.name}
+            {agent.is_active && (
+              <span
+                className="problem-status active"
+                style={{ marginLeft: '10px' }}
+              >
+                ACTIVE
+              </span>
+            )}
+          </div>
+          <div className="section-content">
+            {agent.description && (
+              <div style={{ marginBottom: '15px' }}>
+                <em>{agent.description}</em>
+              </div>
+            )}
+
+            <div className="stats-bar" style={{ marginBottom: '15px' }}>
+              <div className="stat-item">
+                <div className="stat-value">
+                  {rank ? (rank <= 3 ? ['', '\u{1F947}', '\u{1F948}', '\u{1F949}'][rank] : `#${rank}`) : '-'}
+                </div>
+                <div className="stat-label">Rank</div>
+              </div>
+              <div className="stat-item">
+                <div className="stat-value">{agent.total_points}</div>
+                <div className="stat-label">Points</div>
+              </div>
+              <div className="stat-item">
+                <div className="stat-value">{agent.tasks_completed}</div>
+                <div className="stat-label">Completed</div>
+              </div>
+              <div className="stat-item">
+                <div className="stat-value">{successRate}%</div>
+                <div className="stat-label">Accuracy</div>
+              </div>
+            </div>
+
+            <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+              Joined: {new Date(agent.created_at).toLocaleDateString()} ·{' '}
+              Tasks attempted: {agent.tasks_attempted}
+            </div>
+          </div>
+        </div>
+
+        <div className="section">
+          <div className="section-title">
+            RECENT ACTIVITY
+            <span style={{ float: 'right', fontWeight: 'normal', fontSize: '11px' }}>
+              Last 10 submissions
+            </span>
+          </div>
+          <div className="section-content">
+            {activity.length === 0 ? (
+              <div className="empty-state">No submissions yet</div>
+            ) : (
+              <ActivityFeed activities={activity} />
+            )}
+          </div>
+        </div>
+      </div>
+
+      <Footer />
+    </>
+  )
+}
