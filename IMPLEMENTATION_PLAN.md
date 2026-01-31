@@ -2,7 +2,7 @@
 
 A prioritized implementation plan for building the Erdos Problems platform from specifications.
 
-**Current State:** P0-P3 complete. Core infrastructure, API endpoints, verifiers, and frontend pages all implemented. Database migrations need to be applied to Supabase via Dashboard or SQL editor, then run `npm run db:seed` to populate initial data.
+**Current State:** P0-P4 complete. Core infrastructure, API endpoints, verifiers, frontend pages, task generation, and points system all implemented. Database migrations need to be applied to Supabase via Dashboard or SQL editor, then run `npm run db:seed` to populate initial data.
 
 **Recent Updates:**
 - P3 Frontend Pages complete (all layout components, shared components, and pages)
@@ -446,7 +446,7 @@ Task generation and gamification.
 
 ### Task Generation Utilities
 
-- [ ] Implement math utility functions
+- [x] Implement math utility functions
   - `src/lib/task-generator/utils.ts`
   - Functions: isPrime(), randomPrimeInRange(), randomIntInRange(), randomChoice()
   - Miller-Rabin for large prime checks
@@ -454,7 +454,7 @@ Task generation and gamification.
 
 ### Task Generators by Problem
 
-- [ ] Erdos-Straus task generator
+- [x] Erdos-Straus task generator
   - `src/lib/task-generator/erdos-straus.ts`
   - COMPUTE: random prime n with difficulty scaling
   - VERIFY: prime range verification
@@ -462,20 +462,20 @@ Task generation and gamification.
   - **Depends on:** utils.ts
   - **Reference:** specs/task-generation.md
 
-- [ ] Collatz task generator
+- [x] Collatz task generator
   - `src/lib/task-generator/collatz.ts`
   - COMPUTE: stopping time, max value
   - VERIFY: range verification
   - PATTERN: analysis tasks (modular patterns, outliers)
   - **Depends on:** utils.ts
 
-- [ ] Sidon set task generator
+- [x] Sidon set task generator
   - `src/lib/task-generator/sidon.ts`
   - COMPUTE: enumeration tasks
   - VERIFY: set verification
   - **Depends on:** utils.ts
 
-- [ ] Central task generator router
+- [x] Central task generator router
   - `src/lib/task-generator/index.ts`
   - Route by problem slug
   - Balance task type distribution
@@ -484,7 +484,7 @@ Task generation and gamification.
 
 ### Task Generation Endpoint
 
-- [ ] POST /api/v1/tasks/generate (admin/internal)
+- [x] POST /api/v1/tasks/generate (admin/internal)
   - `src/app/api/v1/tasks/generate/route.ts`
   - Accept: problem (optional), type (optional), count
   - Call task generator
@@ -494,7 +494,7 @@ Task generation and gamification.
 
 ### Points System
 
-- [ ] Implement point calculation
+- [x] Implement point calculation
   - `src/lib/gamification/points.ts`
   - Base points by difficulty (easy=5, medium=10-15, hard=20-30, extreme=40-50)
   - First solver bonus (+5)
@@ -502,7 +502,7 @@ Task generation and gamification.
   - Perfect day bonus (+10 for 5+ tasks at 100% accuracy)
   - **Reference:** specs/gamification.md
 
-- [ ] Update submit endpoint to use points calculation
+- [x] Update submit endpoint to use points calculation
   - Modify `src/app/api/v1/tasks/[id]/submit/route.ts`
   - Call calculatePoints() before awarding
   - **Depends on:** points.ts

@@ -5,6 +5,7 @@ import { success } from '@/lib/api/responses'
 import { unauthorized, notFound, notClaimed, claimExpired, validationError, internalError } from '@/lib/api/errors'
 import { isClaimValid } from '@/lib/tasks/claim-expiration'
 import { verify } from '@/lib/verifiers'
+import { calculatePoints, formatPointsBreakdown } from '@/lib/gamification'
 import type { SubmitTaskRequest, SubmitTaskResponse } from '@/types/api'
 import type { TaskType } from '@/types/database'
 
@@ -82,6 +83,27 @@ export async function POST(
       answer: body.answer,
     })
 
+    // Calculate points with bonuses (first solver, counterexample, etc.)
+    let pointsAwarded = 0
+    let pointsMessage = verificationResult.message
+
+    if (verificationResult.verified) {
+      const pointsResult = await calculatePoints({
+        task: {
+          id,
+          type: task.type as TaskType,
+          points: task.points,
+        },
+        answer: body.answer,
+        supabase: supabaseAdmin,
+      })
+      pointsAwarded = pointsResult.totalPoints
+
+      // Add points breakdown to message
+      const breakdown = formatPointsBreakdown(pointsResult)
+      pointsMessage = `${verificationResult.message} (${breakdown})`
+    }
+
     // Create submission record
     const { error: submissionError } = await supabaseAdmin
       .from('submissions')
@@ -92,7 +114,7 @@ export async function POST(
         explanation: body.explanation || null,
         status: verificationResult.verified ? 'verified' : 'rejected',
         verified_at: new Date().toISOString(),
-        points_awarded: verificationResult.verified ? task.points : 0,
+        points_awarded: pointsAwarded,
       })
 
     if (submissionError) {
@@ -113,7 +135,7 @@ export async function POST(
       await supabaseAdmin
         .from('agents')
         .update({
-          total_points: agent.total_points + task.points,
+          total_points: agent.total_points + pointsAwarded,
           tasks_completed: agent.tasks_completed + 1,
           is_active: true, // Mark as active after first successful submission
         })
@@ -133,8 +155,8 @@ export async function POST(
     const response: SubmitTaskResponse = {
       success: verificationResult.verified,
       status: verificationResult.verified ? 'verified' : 'rejected',
-      points_awarded: verificationResult.verified ? task.points : 0,
-      message: verificationResult.message,
+      points_awarded: pointsAwarded,
+      message: pointsMessage,
     }
 
     return success(response)
