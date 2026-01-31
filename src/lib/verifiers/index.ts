@@ -1,0 +1,403 @@
+// Verification Router
+// Routes submissions to the appropriate verifier based on problem slug
+
+import { verifyErdosStraus, type ErdosStrausInput } from './erdos-straus'
+import {
+  verifyCollatzStoppingTime,
+  verifyCollatzMaxValue,
+  verifyCollatzSequence,
+  verifyCollatzRange,
+} from './collatz'
+import { verifySidonSet, findAllSidonSets } from './sidon'
+import type { TaskType } from '@/types/database'
+
+export interface VerificationResult {
+  verified: boolean
+  message: string
+  points?: number
+}
+
+export interface VerificationInput {
+  problemSlug: string
+  taskType: TaskType
+  parameters: Record<string, unknown>
+  answer: Record<string, unknown>
+}
+
+/**
+ * Main verification router.
+ * Routes to the appropriate verifier based on problem slug and task type.
+ */
+export function verify(input: VerificationInput): VerificationResult {
+  const { problemSlug, taskType, parameters, answer } = input
+
+  try {
+    switch (problemSlug) {
+      case 'erdos-straus':
+        return verifyErdosStrausTask(taskType, parameters, answer)
+
+      case 'collatz':
+        return verifyCollatzTask(taskType, parameters, answer)
+
+      case 'sidon':
+        return verifySidonTask(taskType, parameters, answer)
+
+      default:
+        return {
+          verified: false,
+          message: `Unknown problem: ${problemSlug}`,
+        }
+    }
+  } catch (error) {
+    return {
+      verified: false,
+      message: `Verification error: ${error instanceof Error ? error.message : 'unknown error'}`,
+    }
+  }
+}
+
+function verifyErdosStrausTask(
+  taskType: TaskType,
+  parameters: Record<string, unknown>,
+  answer: Record<string, unknown>
+): VerificationResult {
+  if (taskType === 'COMPUTE') {
+    // Answer should contain x, y, z for the given n
+    const n = parameters.n as number | string
+    const { x, y, z } = answer as { x: number | string; y: number | string; z: number | string }
+
+    if (x === undefined || y === undefined || z === undefined) {
+      return {
+        verified: false,
+        message: 'Answer must contain x, y, z values',
+      }
+    }
+
+    const result = verifyErdosStraus({ n, x, y, z } as ErdosStrausInput)
+
+    return {
+      verified: result.valid,
+      message: result.valid
+        ? `Correct! ${result.equation}`
+        : result.error || 'Invalid solution',
+    }
+  }
+
+  if (taskType === 'VERIFY') {
+    // Verify all primes in a range have solutions
+    const rangeStart = parameters.rangeStart as number
+    const rangeEnd = parameters.rangeEnd as number
+    const solutions = answer.solutions as Array<{ n: number; x: number; y: number; z: number }>
+
+    if (!Array.isArray(solutions)) {
+      return {
+        verified: false,
+        message: 'Answer must contain solutions array',
+      }
+    }
+
+    // Verify each solution
+    for (const sol of solutions) {
+      const result = verifyErdosStraus(sol)
+      if (!result.valid) {
+        return {
+          verified: false,
+          message: `Invalid solution for n=${sol.n}: ${result.error}`,
+        }
+      }
+    }
+
+    // Check that all primes in range are covered
+    const coveredN = new Set(solutions.map(s => s.n))
+    for (let n = rangeStart; n <= rangeEnd; n++) {
+      if (isPrime(n) && !coveredN.has(n)) {
+        return {
+          verified: false,
+          message: `Missing solution for prime n=${n}`,
+        }
+      }
+    }
+
+    return {
+      verified: true,
+      message: `All ${solutions.length} solutions verified for range [${rangeStart}, ${rangeEnd}]`,
+    }
+  }
+
+  if (taskType === 'SEARCH') {
+    // Search for counterexample
+    const foundCounterexample = answer.foundCounterexample as boolean
+    const counterexampleN = answer.counterexampleN as number | undefined
+
+    if (foundCounterexample && counterexampleN !== undefined) {
+      // Verify it's actually a counterexample (no solution exists)
+      // This would require exhaustive search which is expensive
+      // For now, return that we need manual verification
+      return {
+        verified: false,
+        message: 'Counterexample claims require manual verification',
+      }
+    }
+
+    // If no counterexample found, that's a valid "negative" result
+    return {
+      verified: true,
+      message: 'Search completed, no counterexample found in range',
+    }
+  }
+
+  return {
+    verified: false,
+    message: `Unsupported task type for Erdos-Straus: ${taskType}`,
+  }
+}
+
+function verifyCollatzTask(
+  taskType: TaskType,
+  parameters: Record<string, unknown>,
+  answer: Record<string, unknown>
+): VerificationResult {
+  if (taskType === 'COMPUTE') {
+    const computeType = parameters.computeType as string
+    const n = parameters.n as number | string
+
+    if (computeType === 'stopping_time') {
+      const stoppingTime = answer.stoppingTime as number
+      if (typeof stoppingTime !== 'number') {
+        return {
+          verified: false,
+          message: 'Answer must contain stoppingTime (number)',
+        }
+      }
+
+      const result = verifyCollatzStoppingTime(n, stoppingTime)
+      return {
+        verified: result.valid,
+        message: result.valid
+          ? `Correct! Stopping time for ${n} is ${stoppingTime}`
+          : result.error || 'Invalid stopping time',
+      }
+    }
+
+    if (computeType === 'max_value') {
+      const maxValue = answer.maxValue as number | string
+      if (maxValue === undefined) {
+        return {
+          verified: false,
+          message: 'Answer must contain maxValue',
+        }
+      }
+
+      const result = verifyCollatzMaxValue(n, maxValue)
+      return {
+        verified: result.valid,
+        message: result.valid
+          ? `Correct! Max value for ${n} is ${maxValue}`
+          : result.error || 'Invalid max value',
+      }
+    }
+
+    if (computeType === 'sequence') {
+      const sequence = answer.sequence as (number | string)[]
+      if (!Array.isArray(sequence)) {
+        return {
+          verified: false,
+          message: 'Answer must contain sequence array',
+        }
+      }
+
+      const result = verifyCollatzSequence(n, sequence)
+      return {
+        verified: result.valid,
+        message: result.valid
+          ? `Correct! Sequence for ${n} verified`
+          : result.error || 'Invalid sequence',
+      }
+    }
+
+    return {
+      verified: false,
+      message: `Unknown compute type: ${computeType}`,
+    }
+  }
+
+  if (taskType === 'VERIFY') {
+    const rangeStart = parameters.rangeStart as number | string
+    const rangeEnd = parameters.rangeEnd as number | string
+    const allReach1 = answer.allReach1 as boolean
+
+    if (typeof allReach1 !== 'boolean') {
+      return {
+        verified: false,
+        message: 'Answer must contain allReach1 (boolean)',
+      }
+    }
+
+    const result = verifyCollatzRange(rangeStart, rangeEnd, allReach1)
+    return {
+      verified: result.valid,
+      message: result.valid
+        ? `Correct! Range [${rangeStart}, ${rangeEnd}] verification confirmed`
+        : result.error || 'Invalid range verification',
+    }
+  }
+
+  if (taskType === 'PATTERN') {
+    // Pattern tasks require community verification
+    return {
+      verified: false,
+      message: 'Pattern analysis requires community verification',
+    }
+  }
+
+  return {
+    verified: false,
+    message: `Unsupported task type for Collatz: ${taskType}`,
+  }
+}
+
+function verifySidonTask(
+  taskType: TaskType,
+  parameters: Record<string, unknown>,
+  answer: Record<string, unknown>
+): VerificationResult {
+  if (taskType === 'COMPUTE') {
+    const computeType = parameters.computeType as string
+
+    if (computeType === 'verify_set') {
+      const set = answer.set as number[]
+      if (!Array.isArray(set)) {
+        return {
+          verified: false,
+          message: 'Answer must contain set array',
+        }
+      }
+
+      const result = verifySidonSet(set)
+      return {
+        verified: result.valid,
+        message: result.valid
+          ? `Correct! Set [${set.join(', ')}] is a valid Sidon set`
+          : result.error || 'Invalid Sidon set',
+      }
+    }
+
+    if (computeType === 'find_all') {
+      const maxElement = parameters.maxElement as number
+      const setSize = parameters.setSize as number
+      const sets = answer.sets as number[][]
+
+      if (!Array.isArray(sets)) {
+        return {
+          verified: false,
+          message: 'Answer must contain sets array',
+        }
+      }
+
+      // Verify all submitted sets are valid
+      for (const set of sets) {
+        const result = verifySidonSet(set)
+        if (!result.valid) {
+          return {
+            verified: false,
+            message: `Invalid Sidon set: [${set.join(', ')}] - ${result.error}`,
+          }
+        }
+
+        // Check size and range
+        if (set.length !== setSize) {
+          return {
+            verified: false,
+            message: `Set [${set.join(', ')}] has wrong size: expected ${setSize}, got ${set.length}`,
+          }
+        }
+
+        if (set.some(n => n > maxElement)) {
+          return {
+            verified: false,
+            message: `Set [${set.join(', ')}] contains elements > ${maxElement}`,
+          }
+        }
+      }
+
+      // Find all actual Sidon sets and compare count
+      const actualSets = findAllSidonSets(maxElement, setSize)
+
+      if (sets.length !== actualSets.length) {
+        return {
+          verified: false,
+          message: `Found ${sets.length} sets, expected ${actualSets.length}`,
+        }
+      }
+
+      return {
+        verified: true,
+        message: `Correct! Found all ${sets.length} Sidon sets of size ${setSize} in [1, ${maxElement}]`,
+      }
+    }
+
+    return {
+      verified: false,
+      message: `Unknown compute type: ${computeType}`,
+    }
+  }
+
+  if (taskType === 'VERIFY') {
+    const set = parameters.set as number[]
+    const isSidon = answer.isSidon as boolean
+
+    if (typeof isSidon !== 'boolean') {
+      return {
+        verified: false,
+        message: 'Answer must contain isSidon (boolean)',
+      }
+    }
+
+    const result = verifySidonSet(set)
+    const actualIsSidon = result.valid
+
+    if (isSidon !== actualIsSidon) {
+      return {
+        verified: false,
+        message: `Incorrect: set is ${actualIsSidon ? '' : 'not '}a Sidon set`,
+      }
+    }
+
+    return {
+      verified: true,
+      message: `Correct! Set [${set.join(', ')}] is ${isSidon ? '' : 'not '}a Sidon set`,
+    }
+  }
+
+  return {
+    verified: false,
+    message: `Unsupported task type for Sidon: ${taskType}`,
+  }
+}
+
+// Helper function to check if a number is prime
+function isPrime(n: number): boolean {
+  if (n < 2) return false
+  if (n === 2) return true
+  if (n % 2 === 0) return false
+
+  const sqrt = Math.sqrt(n)
+  for (let i = 3; i <= sqrt; i += 2) {
+    if (n % i === 0) return false
+  }
+
+  return true
+}
+
+// Re-export individual verifiers for direct use
+export { verifyErdosStraus, findErdosStrausSolution } from './erdos-straus'
+export {
+  verifyCollatzStoppingTime,
+  verifyCollatzMaxValue,
+  verifyCollatzSequence,
+  verifyCollatzRange,
+  computeCollatzSequence,
+  computeStoppingTime,
+  computeMaxValue,
+} from './collatz'
+export { verifySidonSet, findAllSidonSets, countSidonSets, findMaxSidonSet } from './sidon'
