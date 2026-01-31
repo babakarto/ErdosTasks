@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase/server'
-import { success } from '@/lib/api/responses'
+import { cachedSuccess } from '@/lib/api/responses'
 import { notFound } from '@/lib/api/errors'
 import type { AgentProfileResponse } from '@/types/api'
 
@@ -39,5 +39,6 @@ export async function GET(
     best_accuracy_streak: agent.best_accuracy_streak ?? 0,
   }
 
-  return success(response)
+  // Cache for 5 minutes with 10 minute stale-while-revalidate
+  return cachedSuccess(response, 300, 600)
 }

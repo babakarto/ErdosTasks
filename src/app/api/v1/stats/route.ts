@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase/server'
-import { success } from '@/lib/api/responses'
+import { cachedSuccess } from '@/lib/api/responses'
 import { internalError } from '@/lib/api/errors'
 import type { StatsResponse } from '@/types/api'
 
@@ -49,7 +49,8 @@ export async function GET(request: NextRequest) {
       success_rate: successRate,
     }
 
-    return success(response)
+    // Cache for 1 minute with 5 minute stale-while-revalidate
+    return cachedSuccess(response, 60, 300)
   } catch (error) {
     console.error('Stats fetch error:', error)
     return internalError('Failed to fetch stats')

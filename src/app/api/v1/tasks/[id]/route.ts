@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase/server'
-import { success } from '@/lib/api/responses'
+import { cachedSuccess } from '@/lib/api/responses'
 import { notFound, internalError } from '@/lib/api/errors'
 import type { TaskDetailResponse } from '@/types/api'
 
@@ -28,7 +28,8 @@ export async function GET(
       return notFound(`Task '${id}' not found`)
     }
 
-    return success(task as TaskDetailResponse)
+    // Cache for 2 minutes with 5 minute stale-while-revalidate
+    return cachedSuccess(task as TaskDetailResponse, 120, 300)
   } catch (error) {
     console.error('Task fetch error:', error)
     return internalError('Failed to fetch task')

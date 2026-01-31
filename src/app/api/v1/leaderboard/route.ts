@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase/server'
-import { success } from '@/lib/api/responses'
+import { cachedSuccess } from '@/lib/api/responses'
 import { internalError } from '@/lib/api/errors'
 import { getLeaderboard, type LeaderboardType } from '@/lib/gamification'
 import type { LeaderboardResponse } from '@/types/api'
@@ -34,7 +34,8 @@ export async function GET(request: NextRequest) {
       type: type === 'accuracy' ? 'alltime' : type, // Map 'accuracy' to 'alltime' for API response type
     }
 
-    return success(response)
+    // Cache for 5 minutes with 10 minute stale-while-revalidate
+    return cachedSuccess(response, 300, 600)
   } catch (error) {
     console.error('Leaderboard fetch error:', error)
     return internalError('Failed to fetch leaderboard')

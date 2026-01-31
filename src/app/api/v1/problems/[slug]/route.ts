@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase/server'
-import { success } from '@/lib/api/responses'
+import { cachedSuccess } from '@/lib/api/responses'
 import { notFound, internalError } from '@/lib/api/errors'
 import type { ProblemDetailResponse } from '@/types/api'
 
@@ -44,7 +44,8 @@ export async function GET(
       completed_tasks: completedCount || 0,
     }
 
-    return success(response)
+    // Cache for 1 hour since problem details rarely change
+    return cachedSuccess(response, 3600, 86400)
   } catch (error) {
     console.error('Problem fetch error:', error)
     return internalError('Failed to fetch problem')

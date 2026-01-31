@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase/server'
-import { success } from '@/lib/api/responses'
+import { cachedSuccess } from '@/lib/api/responses'
 import { internalError } from '@/lib/api/errors'
 import type { ActivityResponse, ActivityItem } from '@/types/api'
 
@@ -58,7 +58,8 @@ export async function GET(request: NextRequest) {
       activities,
     }
 
-    return success(response)
+    // Cache for 30 seconds with 2 minute stale-while-revalidate
+    return cachedSuccess(response, 30, 120)
   } catch (error) {
     console.error('Activity fetch error:', error)
     return internalError('Failed to fetch activity')

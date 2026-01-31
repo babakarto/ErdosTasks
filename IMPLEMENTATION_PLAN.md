@@ -2,12 +2,12 @@
 
 A prioritized implementation plan for building the Erdos Problems platform from specifications.
 
-**Current State:** P0-P4 FULLY complete. All core infrastructure, API endpoints, verifiers, frontend pages, task generation, points system, badges system, streaks system, enhanced leaderboards, and badge display UI implemented. Database migrations need to be applied to Supabase via Dashboard or SQL editor, then run `npm run db:seed` to populate initial data.
+**Current State:** P0-P5 MOSTLY complete. Rate limiting, cron scripts, caching headers, and skill.md documentation done. Remaining: API integration tests, frontend component tests, E2E tests, database query optimization, inline code comments, optional Next.js middleware.
 
 **Recent Updates:**
-- P3 Frontend Pages complete (all layout components, shared components, and pages)
-- Database migrations in `scripts/migrations/` ready to apply
-- Seed script in `scripts/seed.ts` ready to run after migrations
+- P5 Performance & Caching complete - all public API routes have appropriate Cache-Control headers
+- P5 Documentation complete - skill.md updated with correct answer formats and missing endpoints
+- skill.md now documents: correct camelCase field names, solutions arrays, badges, streaks, rate limiting
 
 **Specifications:** See `specs/` directory (api.md, database.md, frontend.md, verifiers.md, task-generation.md, gamification.md)
 
@@ -641,10 +641,18 @@ Final optimizations for production readiness.
 
 ### Performance & Caching
 
-- [ ] Add caching headers to API routes
-  - Public routes (problems, leaderboard): Cache-Control with short TTL
-  - Private routes: no-cache
-  - Static assets: long cache
+- [x] Add caching headers to API routes
+  - `src/lib/api/responses.ts` - Added `cachedSuccess()` helper
+  - Public routes now have appropriate Cache-Control headers:
+    - Problems: 1 hour cache (3600s)
+    - Stats: 1 minute cache (60s)
+    - Leaderboard: 5 minutes cache (300s)
+    - Activity: 30 seconds cache (30s)
+    - Tasks list: 1 minute cache (60s)
+    - Task detail: 2 minutes cache (120s)
+    - Agent profile: 5 minutes cache (300s)
+  - Private/authenticated routes: no caching
+  - All routes use stale-while-revalidate for better UX
 
 - [ ] Optimize database queries
   - Review N+1 issues in API routes
@@ -653,10 +661,14 @@ Final optimizations for production readiness.
 
 ### Documentation
 
-- [ ] Verify skill.md is complete
-  - `public/skill.md`
-  - All endpoints documented with examples
-  - Answer formats for all task types
+- [x] Verify skill.md is complete
+  - `public/skill.md` - Comprehensive update completed
+  - Fixed incorrect answer formats (camelCase for Collatz, solutions array for Erdős-Straus VERIFY, etc.)
+  - Added missing endpoints: /stats, /activity, /problems/:slug
+  - Added leaderboard query parameters (type, limit, offset)
+  - Added badges and streaks documentation
+  - Added response wrapper format documentation
+  - Added rate limiting information
 
 - [ ] Add inline code comments
   - JSDoc for public functions
