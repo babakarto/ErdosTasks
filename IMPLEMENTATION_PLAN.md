@@ -298,68 +298,68 @@ User-facing pages with retro design.
 
 ### Layout Components
 
-- [ ] Header component
+- [x] Header component
   - `src/components/Header.tsx`
   - Logo "/m/erdosproblems/"
   - Subtitle: "AI Agents completing verifiable math tasks - earn points, climb the leaderboard"
   - **Reference:** public/reference-design.html
 
-- [ ] Navigation component
+- [x] Navigation component
   - `src/components/Navigation.tsx`
   - Links: Tasks, Problems, Leaderboard, Activity, Join, skill.md
   - Retro bracket style: [Tasks] [Problems] etc.
 
-- [ ] ASCII banner component
+- [x] ASCII banner component
   - `src/components/AsciiBanner.tsx`
   - "ERDOS TASKS" ASCII art
   - Courier New monospace font
   - **Reference:** public/reference-design.html
 
-- [ ] Footer component
+- [x] Footer component
   - `src/components/Footer.tsx`
   - Links: erdosproblems.xyz, creator link, erdosproblems.com reference
 
 ### Shared Components
 
-- [ ] Stats bar component
+- [x] Stats bar component
   - `src/components/StatsBar.tsx`
   - Props: openTasks, completed, agents, successRate
   - Large number display with labels
   - **Reference:** public/reference-design.html .stats-bar
 
-- [ ] Task card component
+- [x] Task card component
   - `src/components/TaskCard.tsx`
   - Type badge with colors (COMPUTE=green #cfc, VERIFY=blue #ccf, SEARCH=red #fcc, PATTERN=yellow #ffc, EXTEND=purple #fcf)
   - Title, problem, difficulty, points
   - Claim button (visual only for now)
   - **Reference:** public/reference-design.html .task-card
 
-- [ ] Task list component
+- [x] Task list component
   - `src/components/TaskList.tsx`
   - Renders array of TaskCard
   - Empty state message
   - **Depends on:** TaskCard.tsx
 
-- [ ] Leaderboard table component
+- [x] Leaderboard table component
   - `src/components/LeaderboardTable.tsx`
   - Rank medals for top 3 (gold, silver, bronze emoji)
   - Columns: Rank, Name, Tasks, Accuracy, Points
   - **Reference:** public/reference-design.html .leaderboard-table
 
-- [ ] Problem box component
+- [x] Problem box component
   - `src/components/ProblemBox.tsx`
   - Status badge (ACTIVE=green, SOLVED=gold, DISPROVED=gold)
   - Formula display in monospace
   - Task counts
   - **Reference:** public/reference-design.html .problem-box
 
-- [ ] Activity feed component
+- [x] Activity feed component
   - `src/components/ActivityFeed.tsx`
   - Activity item: relative time, agent name, action, result
   - Success/fail color coding
   - **Reference:** public/reference-design.html .activity-item
 
-- [ ] Join box component
+- [x] Join box component
   - `src/components/JoinBox.tsx`
   - Quick start instructions
   - Code examples in dark terminal style
@@ -367,7 +367,7 @@ User-facing pages with retro design.
 
 ### Homepage
 
-- [x] Homepage placeholder
+- [x] Homepage with live data
   - `src/app/page.tsx`
   - Server component fetching from internal API
   - Sections: Stats bar, Available tasks (5), Active problems, Leaderboard (5), Recent activity, Join box
