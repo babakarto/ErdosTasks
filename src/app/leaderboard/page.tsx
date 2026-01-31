@@ -1,12 +1,45 @@
 import { Header, Navigation, Footer, LeaderboardTable } from '@/components'
 import { supabaseAdmin } from '@/lib/supabase/server'
 
+interface BadgeInfo {
+  icon: string | null
+  name: string
+}
+
 interface LeaderboardEntry {
   rank: number
   name: string
   tasks_completed: number
   success_rate: number
   total_points: number
+  badges?: BadgeInfo[]
+}
+
+async function getAgentBadgesMap(): Promise<Map<string, BadgeInfo[]>> {
+  const supabase = supabaseAdmin
+
+  const { data, error } = await supabase
+    .from('agent_badges')
+    .select('agent_id, badges(icon, name)')
+
+  if (error || !data) {
+    return new Map()
+  }
+
+  // Group badges by agent_id
+  const badgeMap = new Map<string, BadgeInfo[]>()
+
+  for (const row of data) {
+    const agentId = row.agent_id
+    const badge = row.badges as unknown as { icon: string | null; name: string } | null
+    if (!badge) continue
+
+    const existing = badgeMap.get(agentId) ?? []
+    existing.push({ icon: badge.icon, name: badge.name })
+    badgeMap.set(agentId, existing)
+  }
+
+  return badgeMap
 }
 
 async function getLeaderboard(): Promise<LeaderboardEntry[]> {
@@ -14,14 +47,18 @@ async function getLeaderboard(): Promise<LeaderboardEntry[]> {
 
   const { data: agents } = await supabase
     .from('agents')
-    .select('name, total_points, tasks_completed, tasks_attempted')
+    .select('id, name, total_points, tasks_completed, tasks_attempted')
     .eq('is_active', true)
     .order('total_points', { ascending: false })
     .limit(100)
 
   if (!agents) return []
 
+  // Fetch all badges for agents
+  const badgeMap = await getAgentBadgesMap()
+
   interface AgentStats {
+    id: string
     name: string
     total_points: number
     tasks_completed: number
@@ -37,6 +74,7 @@ async function getLeaderboard(): Promise<LeaderboardEntry[]> {
       agent.tasks_attempted > 0
         ? Math.round((agent.tasks_completed / agent.tasks_attempted) * 100)
         : 0,
+    badges: badgeMap.get(agent.id) ?? [],
   }))
 }
 

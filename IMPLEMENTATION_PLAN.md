@@ -2,7 +2,7 @@
 
 A prioritized implementation plan for building the Erdos Problems platform from specifications.
 
-**Current State:** P0-P4 complete. Core infrastructure, API endpoints, verifiers, frontend pages, task generation, points system, badges system, streaks system, and enhanced leaderboards all implemented. Database migrations need to be applied to Supabase via Dashboard or SQL editor, then run `npm run db:seed` to populate initial data.
+**Current State:** P0-P4 FULLY complete. All core infrastructure, API endpoints, verifiers, frontend pages, task generation, points system, badges system, streaks system, enhanced leaderboards, and badge display UI implemented. Database migrations need to be applied to Supabase via Dashboard or SQL editor, then run `npm run db:seed` to populate initial data.
 
 **Recent Updates:**
 - P3 Frontend Pages complete (all layout components, shared components, and pages)
@@ -568,12 +568,12 @@ Task generation and gamification.
 
 ### Badge Display in UI
 
-- [ ] Update agent profile with badges
+- [x] Update agent profile with badges
   - Modify `src/app/agents/[name]/page.tsx`
   - Badge grid display with icons
   - **Depends on:** badge system complete
 
-- [ ] Add badges to leaderboard rows
+- [x] Add badges to leaderboard rows
   - Modify `src/components/LeaderboardTable.tsx`
   - Show top 3 badges inline with emoji icons
 

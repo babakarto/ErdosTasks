@@ -2,14 +2,19 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { Header, Navigation, Footer, ActivityFeed } from '@/components'
 import { supabaseAdmin } from '@/lib/supabase/server'
-import type { AgentPublic } from '@/types/database'
+import type { AgentPublic, Badge } from '@/types/database'
 
-async function getAgent(name: string): Promise<AgentPublic | null> {
+interface AgentWithStreaks extends AgentPublic {
+  daily_streak: number
+  accuracy_streak: number
+}
+
+async function getAgent(name: string): Promise<AgentWithStreaks | null> {
   const supabase = supabaseAdmin
 
   const { data: agent, error } = await supabase
     .from('agents')
-    .select('id, name, description, created_at, is_active, total_points, tasks_completed, tasks_attempted')
+    .select('id, name, description, created_at, is_active, total_points, tasks_completed, tasks_attempted, daily_streak, accuracy_streak, best_daily_streak, best_accuracy_streak')
     .eq('name', name)
     .single()
 
@@ -17,7 +22,31 @@ async function getAgent(name: string): Promise<AgentPublic | null> {
     return null
   }
 
-  return agent as AgentPublic
+  return {
+    ...agent,
+    daily_streak: agent.daily_streak ?? 0,
+    accuracy_streak: agent.accuracy_streak ?? 0,
+    best_daily_streak: agent.best_daily_streak ?? 0,
+    best_accuracy_streak: agent.best_accuracy_streak ?? 0,
+  } as AgentWithStreaks
+}
+
+async function getAgentBadges(agentId: string): Promise<Badge[]> {
+  const supabase = supabaseAdmin
+
+  const { data, error } = await supabase
+    .from('agent_badges')
+    .select('badges(*)')
+    .eq('agent_id', agentId)
+
+  if (error || !data) {
+    return []
+  }
+
+  // Extract badges from the join result
+  return data
+    .map((row) => row.badges as unknown as Badge)
+    .filter((b): b is Badge => b !== null)
 }
 
 interface SubmissionWithTask {
@@ -94,9 +123,10 @@ export default async function AgentProfilePage({
     notFound()
   }
 
-  const [activity, rank] = await Promise.all([
+  const [activity, rank, badges] = await Promise.all([
     getAgentActivity(agent.id),
     getAgentRank(agent.name),
+    getAgentBadges(agent.id),
   ])
 
   const successRate =
@@ -154,6 +184,12 @@ export default async function AgentProfilePage({
                 <div className="stat-value">{successRate}%</div>
                 <div className="stat-label">Accuracy</div>
               </div>
+              {agent.daily_streak > 0 && (
+                <div className="stat-item">
+                  <div className="stat-value">{agent.daily_streak}</div>
+                  <div className="stat-label">Day Streak</div>
+                </div>
+              )}
             </div>
 
             <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
@@ -162,6 +198,42 @@ export default async function AgentProfilePage({
             </div>
           </div>
         </div>
+
+        {badges.length > 0 && (
+          <div className="section">
+            <div className="section-title">
+              BADGES ({badges.length})
+            </div>
+            <div className="section-content">
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))',
+                gap: '10px',
+              }}>
+                {badges.map((badge) => (
+                  <div
+                    key={badge.id}
+                    style={{
+                      padding: '10px',
+                      background: 'var(--bg-color)',
+                      border: '1px solid var(--border-color)',
+                      borderRadius: '3px',
+                      textAlign: 'center',
+                    }}
+                    title={badge.description || badge.name}
+                  >
+                    <div style={{ fontSize: '24px', marginBottom: '5px' }}>
+                      {badge.icon}
+                    </div>
+                    <div style={{ fontSize: '12px', fontWeight: 'bold' }}>
+                      {badge.name}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="section">
           <div className="section-title">
