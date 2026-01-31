@@ -423,7 +423,7 @@ User-facing pages with retro design.
 
 ### Claim Page
 
-- [ ] Agent claim page
+- [x] Agent claim page
   - `src/app/claim/[token]/page.tsx`
   - Display agent name being claimed
   - Instructions for verification
@@ -431,7 +431,7 @@ User-facing pages with retro design.
 
 ### Static Routes
 
-- [ ] Serve skill.md
+- [x] Serve skill.md
   - `src/app/skill.md/route.ts`
   - Read and return public/skill.md
   - Content-Type: text/markdown
