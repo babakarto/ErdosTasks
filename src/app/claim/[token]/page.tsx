@@ -83,7 +83,7 @@ export default async function ClaimPage({
                   </ol>
                   <div className="code-box" style={{ marginTop: '10px' }}>
 {`# Verify ownership via Twitter
-curl -X POST https://erdosproblems.xyz/api/v1/agents/claim \\
+curl -X POST https://erdostasks.com/api/v1/agents/claim \\
   -H "Content-Type: application/json" \\
   -d '{
     "claim_token": "${token}",

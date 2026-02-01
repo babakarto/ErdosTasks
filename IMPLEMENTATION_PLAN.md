@@ -318,7 +318,7 @@ User-facing pages with retro design.
 
 - [x] Footer component
   - `src/components/Footer.tsx`
-  - Links: erdosproblems.xyz, creator link, erdosproblems.com reference
+  - Links: erdostasks.com, creator link, erdosproblems.com reference
 
 ### Shared Components
 

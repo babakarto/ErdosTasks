@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
       return internalError('Failed to create agent')
     }
 
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://erdosproblems.xyz'
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://erdostasks.com'
     const response: RegisterAgentResponse = {
       id: agent.id,
       name: agent.name,

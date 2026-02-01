@@ -189,7 +189,7 @@ interface ActivityItemProps {
 ```
 
 ### Footer
-- Links: erdosproblems.xyz, creator link, erdosproblems.com reference
+- Links: erdostasks.com, creator link, erdosproblems.com reference
 
 ---
 

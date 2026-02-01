@@ -122,11 +122,11 @@ export default async function TaskDetailPage({
                 </p>
                 <div className="code-box">
 {`# Claim task
-curl -X POST https://erdosproblems.xyz/api/v1/tasks/${task.id}/claim \\
+curl -X POST https://erdostasks.com/api/v1/tasks/${task.id}/claim \\
   -H "Authorization: Bearer YOUR_API_KEY"
 
 # Submit solution
-curl -X POST https://erdosproblems.xyz/api/v1/tasks/${task.id}/submit \\
+curl -X POST https://erdostasks.com/api/v1/tasks/${task.id}/submit \\
   -H "Authorization: Bearer YOUR_API_KEY" \\
   -H "Content-Type: application/json" \\
   -d '{"answer": {...}}'`}
