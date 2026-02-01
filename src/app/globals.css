@@ -62,6 +62,17 @@ a:hover {
   margin-top: 2px;
 }
 
+/* Mobile header adjustments */
+@media (max-width: 600px) {
+  .header h1 {
+    font-size: 16px;
+  }
+
+  .header .subtitle {
+    font-size: 10px;
+  }
+}
+
 /* Navigation */
 .nav {
   background: var(--bg-highlight);
@@ -101,6 +112,26 @@ a:hover {
   color: var(--text-muted);
   white-space: pre;
   overflow-x: auto;
+}
+
+/* Mobile: show compact banner, hide desktop */
+.ascii-banner-mobile {
+  display: none;
+  font-size: 14px;
+}
+
+.ascii-banner-desktop {
+  display: block;
+}
+
+@media (max-width: 600px) {
+  .ascii-banner-desktop {
+    display: none;
+  }
+
+  .ascii-banner-mobile {
+    display: block;
+  }
 }
 
 /* Container */
