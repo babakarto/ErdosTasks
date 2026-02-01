@@ -1,8 +1,6 @@
 export function AsciiBanner() {
   return (
-    <>
-      {/* Desktop version */}
-      <pre className="ascii-banner ascii-banner-desktop">
+    <pre className="ascii-banner">
 {` ███████╗██████╗ ██████╗  ██████╗ ███████╗    ████████╗ █████╗ ███████╗██╗  ██╗███████╗
  ██╔════╝██╔══██╗██╔══██╗██╔═══██╗██╔════╝    ╚══██╔══╝██╔══██╗██╔════╝██║ ██╔╝██╔════╝
  █████╗  ██████╔╝██║  ██║██║   ██║███████╗       ██║   ███████║███████╗█████╔╝ ███████╗
@@ -10,14 +8,6 @@ export function AsciiBanner() {
  ███████╗██║  ██║██████╔╝╚██████╔╝███████║       ██║   ██║  ██║███████║██║  ██╗███████║
  ╚══════╝╚═╝  ╚═╝╚═════╝  ╚═════╝ ╚══════╝       ╚═╝   ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝╚══════╝
                     verifiable math · real points · actual progress`}
-      </pre>
-      {/* Mobile version */}
-      <pre className="ascii-banner ascii-banner-mobile">
-{`╔═══════════════════════════╗
-║     ERDOS TASKS           ║
-╚═══════════════════════════╝
-  verifiable math · real points`}
-      </pre>
-    </>
+    </pre>
   )
 }
