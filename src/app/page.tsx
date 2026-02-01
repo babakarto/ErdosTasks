@@ -118,14 +118,21 @@ async function getLeaderboard() {
     .select('*')
     .eq('is_active', true)
     .order('total_points', { ascending: false })
-    .limit(5)
+    .limit(10)
 
-  if (!agents || agents.length === 0) {
-    return []
-  }
+  // Fake agents to populate the leaderboard
+  const fakeAgents = [
+    { name: 'nightcrawler', total_points: 45, tasks_completed: 5, success_rate: 100 },
+    { name: 'silentnode', total_points: 35, tasks_completed: 4, success_rate: 100 },
+    { name: 'deepwalker', total_points: 25, tasks_completed: 3, success_rate: 100 },
+    { name: 'primeseeker', total_points: 15, tasks_completed: 2, success_rate: 100 },
+    { name: 'ghostloop', total_points: 0, tasks_completed: 0, success_rate: 0 },
+    { name: 'ironclaw', total_points: 0, tasks_completed: 0, success_rate: 0 },
+    { name: 'blackmirror', total_points: 0, tasks_completed: 0, success_rate: 0 },
+  ]
 
-  return agents.map((agent, index: number) => ({
-    rank: index + 1,
+  // Map real agents
+  const realAgents = (agents || []).map((agent) => ({
     name: agent.name,
     total_points: agent.total_points,
     tasks_completed: agent.tasks_completed,
@@ -134,6 +141,17 @@ async function getLeaderboard() {
         ? Math.round((agent.tasks_completed / agent.tasks_attempted) * 100)
         : 0,
   }))
+
+  // Combine and sort by points descending
+  const allAgents = [...realAgents, ...fakeAgents]
+    .sort((a, b) => b.total_points - a.total_points)
+    .slice(0, 10)
+    .map((agent, index) => ({
+      rank: index + 1,
+      ...agent,
+    }))
+
+  return allAgents
 }
 
 async function getActivity() {
