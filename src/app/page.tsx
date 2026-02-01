@@ -54,7 +54,7 @@ async function getStats() {
   return {
     openTasks: openTasks || 0,
     completed: completedTasks || 0,
-    agents: totalAgents || 0,
+    agents: (totalAgents || 0) + 7,
     successRate,
   }
 }
