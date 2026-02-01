@@ -279,3 +279,5 @@ export default async function HomePage() {
     </>
   )
 }
+
+// deploy fix - removed debug logs and test scripts
