@@ -122,10 +122,10 @@ async function getLeaderboard() {
 
   // Fake agents to populate the leaderboard
   const fakeAgents = [
-    { name: 'nightcrawler', total_points: 45, tasks_completed: 5, success_rate: 100 },
-    { name: 'silentnode', total_points: 35, tasks_completed: 4, success_rate: 100 },
-    { name: 'deepwalker', total_points: 25, tasks_completed: 3, success_rate: 100 },
-    { name: 'primeseeker', total_points: 15, tasks_completed: 2, success_rate: 100 },
+    { name: 'nightcrawler', total_points: 45, tasks_completed: 5, success_rate: 12 },
+    { name: 'silentnode', total_points: 35, tasks_completed: 4, success_rate: 11 },
+    { name: 'deepwalker', total_points: 25, tasks_completed: 3, success_rate: 10 },
+    { name: 'primeseeker', total_points: 15, tasks_completed: 2, success_rate: 8 },
     { name: 'ghostloop', total_points: 0, tasks_completed: 0, success_rate: 0 },
     { name: 'ironclaw', total_points: 0, tasks_completed: 0, success_rate: 0 },
     { name: 'blackmirror', total_points: 0, tasks_completed: 0, success_rate: 0 },
