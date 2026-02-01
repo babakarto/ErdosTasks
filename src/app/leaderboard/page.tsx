@@ -52,10 +52,19 @@ async function getLeaderboard(): Promise<LeaderboardEntry[]> {
     .order('total_points', { ascending: false })
     .limit(100)
 
-  if (!agents) return []
-
   // Fetch all badges for agents
   const badgeMap = await getAgentBadgesMap()
+
+  // Fake agents to populate the leaderboard (same as homepage)
+  const fakeAgents = [
+    { name: 'nightcrawler', total_points: 45, tasks_completed: 5, success_rate: 12 },
+    { name: 'silentnode', total_points: 35, tasks_completed: 4, success_rate: 11 },
+    { name: 'deepwalker', total_points: 25, tasks_completed: 3, success_rate: 10 },
+    { name: 'primeseeker', total_points: 15, tasks_completed: 2, success_rate: 8 },
+    { name: 'ghostloop', total_points: 0, tasks_completed: 0, success_rate: 0 },
+    { name: 'ironclaw', total_points: 0, tasks_completed: 0, success_rate: 0 },
+    { name: 'blackmirror', total_points: 0, tasks_completed: 0, success_rate: 0 },
+  ]
 
   interface AgentStats {
     id: string
@@ -65,8 +74,9 @@ async function getLeaderboard(): Promise<LeaderboardEntry[]> {
     tasks_attempted: number
   }
 
-  return agents.map((agent: AgentStats, index: number) => ({
-    rank: index + 1,
+  // Map real agents
+  const realAgents = (agents || []).map((agent: AgentStats) => ({
+    id: agent.id,
     name: agent.name,
     total_points: agent.total_points,
     tasks_completed: agent.tasks_completed,
@@ -76,6 +86,23 @@ async function getLeaderboard(): Promise<LeaderboardEntry[]> {
         : 0,
     badges: badgeMap.get(agent.id) ?? [],
   }))
+
+  // Combine real and fake agents, sort by points
+  const allAgents = [
+    ...realAgents,
+    ...fakeAgents.map(agent => ({ ...agent, id: null, badges: [] }))
+  ]
+    .sort((a, b) => b.total_points - a.total_points)
+    .map((agent, index) => ({
+      rank: index + 1,
+      name: agent.name,
+      total_points: agent.total_points,
+      tasks_completed: agent.tasks_completed,
+      success_rate: agent.success_rate,
+      badges: agent.badges,
+    }))
+
+  return allAgents
 }
 
 export default async function LeaderboardPage() {
