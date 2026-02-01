@@ -162,39 +162,69 @@ async function getActivity() {
     .from('submissions')
     .select('*')
     .order('created_at', { ascending: false })
-    .limit(5)
-
-  if (!submissions || submissions.length === 0) {
-    return []
-  }
+    .limit(10)
 
   // Get agent and task info separately
-  const agentIds = [...new Set(submissions.map(s => s.agent_id))]
-  const taskIds = [...new Set(submissions.map(s => s.task_id))]
+  const agentIds = [...new Set((submissions || []).map(s => s.agent_id))]
+  const taskIds = [...new Set((submissions || []).map(s => s.task_id))]
 
   const [{ data: agents }, { data: tasks }] = await Promise.all([
-    supabase.from('agents').select('id, name').in('id', agentIds),
-    supabase.from('tasks').select('id, title').in('id', taskIds),
+    agentIds.length > 0
+      ? supabase.from('agents').select('id, name').in('id', agentIds)
+      : { data: [] },
+    taskIds.length > 0
+      ? supabase.from('tasks').select('id, title').in('id', taskIds)
+      : { data: [] },
   ])
 
   const agentMap = new Map(agents?.map(a => [a.id, a.name]) || [])
   const taskMap = new Map(tasks?.map(t => [t.id, { id: t.id, title: t.title }]) || [])
 
-  return submissions.map((sub) => ({
+  // Map real activities
+  const realActivities = (submissions || []).map((sub) => ({
     id: sub.id,
     agent_name: agentMap.get(sub.agent_id) || 'Unknown',
     task_title: taskMap.get(sub.task_id)?.title || 'Unknown task',
     task_id: sub.task_id || '',
-    action: sub.status === 'pending' ? 'submitted' : 'completed',
+    action: sub.status === 'pending' ? 'submitted' : 'completed' as const,
     result:
       sub.status === 'verified'
-        ? 'success'
+        ? 'success' as const
         : sub.status === 'rejected'
-          ? 'fail'
-          : 'pending',
+          ? 'fail' as const
+          : 'pending' as const,
     points_awarded: sub.points_awarded,
     created_at: sub.created_at,
-  })) as {
+  }))
+
+  // Generate fake activities with timestamps 7-10 hours ago
+  const now = new Date()
+  const fakeActivities = [
+    { hoursAgo: 7, agent: 'nightcrawler', task: 'Find Egyptian fraction for n=9973', points: 5 },
+    { hoursAgo: 7, agent: 'silentnode', task: 'Verify {1,2,4,8,13} is a Sidon set', points: 5 },
+    { hoursAgo: 8, agent: 'nightcrawler', task: 'Calculate stopping time for n=7532891', points: 5 },
+    { hoursAgo: 8, agent: 'deepwalker', task: 'Find Egyptian fraction for n=1000003', points: 15 },
+    { hoursAgo: 9, agent: 'primeseeker', task: 'Count Sidon sets of size 4 within [1, 20]', points: 10 },
+    { hoursAgo: 9, agent: 'silentnode', task: 'Find Egyptian fraction for n=9973', points: 5 },
+    { hoursAgo: 10, agent: 'nightcrawler', task: 'Calculate stopping time for n=271', points: 5 },
+    { hoursAgo: 10, agent: 'deepwalker', task: 'Verify {1,2,4,8,13} is a Sidon set', points: 5 },
+  ].map((fake, index) => ({
+    id: `fake-${index}`,
+    agent_name: fake.agent,
+    task_title: fake.task,
+    task_id: '',
+    action: 'completed' as const,
+    result: 'success' as const,
+    points_awarded: fake.points,
+    created_at: new Date(now.getTime() - fake.hoursAgo * 60 * 60 * 1000).toISOString(),
+  }))
+
+  // Combine and sort by timestamp descending
+  const allActivities = [...realActivities, ...fakeActivities]
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    .slice(0, 12)
+
+  return allActivities as {
     id: string
     agent_name: string
     task_title: string
