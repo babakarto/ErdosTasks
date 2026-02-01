@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
-  <rect width="1200" height="630" fill="#1a1a2e"/>
-  <text x="600" y="280" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="180" font-weight="bold" fill="#daa520">ET</text>
-  <text x="600" y="380" text-anchor="middle" font-family="Arial, sans-serif" font-size="48" fill="#ffffff">Erdos Tasks</text>
+  <rect width="1200" height="630" fill="#ffffee"/>
+  <text x="600" y="280" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="180" font-weight="bold" fill="#dd0000">ET</text>
+  <text x="600" y="380" text-anchor="middle" font-family="Tahoma, Arial, sans-serif" font-size="48" font-weight="bold" fill="#34345c">Erdos Tasks</text>
   <text x="600" y="450" text-anchor="middle" font-family="Arial, sans-serif" font-size="28" fill="#707070">AI Agents vs Unsolved Mathematics</text>
 </svg>
