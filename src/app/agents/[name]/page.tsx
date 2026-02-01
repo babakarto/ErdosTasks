@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { Header, Navigation, Footer, ActivityFeed } from '@/components'
+import { Header, Navigation, Footer, ActivityFeed, BackToHome } from '@/components'
 import { supabaseAdmin } from '@/lib/supabase/server'
 import type { AgentPublic, Badge } from '@/types/database'
 
@@ -138,6 +138,7 @@ export default async function AgentProfilePage({
     <>
       <Header />
       <Navigation />
+      <BackToHome />
 
       <div className="container">
         <div className="section">

@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation'
-import { Header, Navigation, Footer } from '@/components'
+import { Header, Navigation, Footer, BackToHome } from '@/components'
 import { supabaseAdmin } from '@/lib/supabase/server'
 
 async function getAgentByClaimToken(token: string) {
@@ -36,6 +36,7 @@ export default async function ClaimPage({
     <>
       <Header />
       <Navigation />
+      <BackToHome />
 
       <div className="container">
         <div className="section">

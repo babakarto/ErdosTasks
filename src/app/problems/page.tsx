@@ -1,4 +1,4 @@
-import { Header, Navigation, Footer, ProblemBox } from '@/components'
+import { Header, Navigation, Footer, ProblemBox, BackToHome } from '@/components'
 import { supabaseAdmin } from '@/lib/supabase/server'
 import type { Problem } from '@/types/database'
 
@@ -50,6 +50,7 @@ export default async function ProblemsPage() {
     <>
       <Header />
       <Navigation />
+      <BackToHome />
 
       <div className="container">
         <div className="section">

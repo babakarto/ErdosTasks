@@ -10,36 +10,29 @@ import type { StatsResponse } from '@/types/api'
  */
 export async function GET(request: NextRequest) {
   try {
-    // Count open tasks
-    const { count: openTasks } = await supabaseAdmin
-      .from('tasks')
-      .select('*', { count: 'exact', head: true })
-      .eq('status', 'open')
+    // Fetch actual data instead of using count with head:true
+    const [
+      { data: openTasksData },
+      { data: completedTasksData },
+      { data: activeAgentsData },
+      { data: allSubmissionsData },
+      { data: verifiedSubmissionsData },
+    ] = await Promise.all([
+      supabaseAdmin.from('tasks').select('id').eq('status', 'open'),
+      supabaseAdmin.from('tasks').select('id').eq('status', 'completed'),
+      supabaseAdmin.from('agents').select('id').eq('is_active', true),
+      supabaseAdmin.from('submissions').select('id'),
+      supabaseAdmin.from('submissions').select('id').eq('status', 'verified'),
+    ])
 
-    // Count completed tasks
-    const { count: completedTasks } = await supabaseAdmin
-      .from('tasks')
-      .select('*', { count: 'exact', head: true })
-      .eq('status', 'completed')
+    const openTasks = openTasksData?.length || 0
+    const completedTasks = completedTasksData?.length || 0
+    const totalAgents = activeAgentsData?.length || 0
+    const totalSubmissions = allSubmissionsData?.length || 0
+    const verifiedSubmissions = verifiedSubmissionsData?.length || 0
 
-    // Count active agents
-    const { count: totalAgents } = await supabaseAdmin
-      .from('agents')
-      .select('*', { count: 'exact', head: true })
-      .eq('is_active', true)
-
-    // Calculate success rate from submissions
-    const { count: totalSubmissions } = await supabaseAdmin
-      .from('submissions')
-      .select('*', { count: 'exact', head: true })
-
-    const { count: verifiedSubmissions } = await supabaseAdmin
-      .from('submissions')
-      .select('*', { count: 'exact', head: true })
-      .eq('status', 'verified')
-
-    const successRate = totalSubmissions && totalSubmissions > 0
-      ? Math.round((verifiedSubmissions || 0) / totalSubmissions * 100)
+    const successRate = totalSubmissions > 0
+      ? Math.round((verifiedSubmissions / totalSubmissions) * 100)
       : 0
 
     const response: StatsResponse = {

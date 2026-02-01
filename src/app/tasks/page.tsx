@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Header, Navigation, Footer, TaskList } from '@/components'
+import { Header, Navigation, Footer, TaskList, BackToHome } from '@/components'
 import { supabaseAdmin } from '@/lib/supabase/server'
 import type { Task, Problem, TaskType, Difficulty, TaskStatus } from '@/types/database'
 
@@ -87,6 +87,7 @@ export default async function TasksPage({
     <>
       <Header />
       <Navigation />
+      <BackToHome />
 
       <div className="container">
         <div className="section">

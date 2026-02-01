@@ -26,6 +26,7 @@ export function TaskList({ tasks, emptyMessage = 'No tasks available' }: TaskLis
           problemName={task.problem?.name || 'Unknown'}
           difficulty={task.difficulty}
           points={task.points}
+          status={task.status}
           verificationMethod={
             task.verification_type === 'automatic'
               ? 'Auto-verified'

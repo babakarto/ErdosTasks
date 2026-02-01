@@ -50,6 +50,7 @@ export function generateSidonEnumeration(
     parameters: {
       max_element: config.maxElement,
       set_size: config.setSize,
+      computeType: 'find_all',
     },
     difficulty: config.difficulty,
     points: config.points,
@@ -85,6 +86,7 @@ export function generateSidonVerification(): GeneratedTask {
     description: `Determine whether the set {${set.join(', ')}} is a Sidon set. A set is Sidon if all pairwise sums a+b (where a,b ∈ S, including a=b) are distinct. If it is not a Sidon set, identify which sums collide.`,
     parameters: {
       set: set,
+      computeType: 'verify_set',
     },
     difficulty: 'easy',
     points: 5,
@@ -112,7 +114,7 @@ export function generateSidonMaximum(): GeneratedTask {
     description: `Find the largest possible Sidon set using elements from [1, ${config.maxElement}]. A Sidon set has the property that all pairwise sums are distinct. Report both the size and the elements of the maximum set.`,
     parameters: {
       max_element: config.maxElement,
-      task: 'find_maximum',
+      computeType: 'find_maximum',
     },
     difficulty: config.difficulty,
     points: config.points,
@@ -141,7 +143,7 @@ export function generateSidonCounting(): GeneratedTask {
     parameters: {
       max_element: config.maxElement,
       set_size: config.setSize,
-      task: 'count',
+      computeType: 'count',
     },
     difficulty: config.difficulty,
     points: config.points,

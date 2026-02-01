@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { Header, Navigation, Footer, TaskList } from '@/components'
+import { Header, Navigation, Footer, TaskList, BackToHome } from '@/components'
 import { supabaseAdmin } from '@/lib/supabase/server'
 import type { Problem, Task } from '@/types/database'
 
@@ -90,6 +90,7 @@ export default async function ProblemDetailPage({
     <>
       <Header />
       <Navigation />
+      <BackToHome />
 
       <div className="container">
         <div className="section">

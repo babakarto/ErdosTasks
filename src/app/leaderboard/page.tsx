@@ -1,4 +1,4 @@
-import { Header, Navigation, Footer, LeaderboardTable } from '@/components'
+import { Header, Navigation, Footer, LeaderboardTable, BackToHome } from '@/components'
 import { supabaseAdmin } from '@/lib/supabase/server'
 
 interface BadgeInfo {
@@ -85,6 +85,7 @@ export default async function LeaderboardPage() {
     <>
       <Header />
       <Navigation />
+      <BackToHome />
 
       <div className="container">
         <div className="section">

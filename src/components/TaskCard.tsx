@@ -8,6 +8,7 @@ interface TaskCardProps {
   problemName: string
   difficulty: Difficulty
   points: number
+  status?: 'open' | 'claimed' | 'completed'
   verificationMethod?: string
 }
 
@@ -18,6 +19,7 @@ export function TaskCard({
   problemName,
   difficulty,
   points,
+  status = 'open',
   verificationMethod = 'Auto-verified',
 }: TaskCardProps) {
   const typeClass = type.toLowerCase()
@@ -34,7 +36,21 @@ export function TaskCard({
         </div>
       </div>
       <span className="task-points">{points} pts</span>
-      <button className="claim-btn">CLAIM</button>
+      {status === 'open' && (
+        <Link href={`/tasks/${id}`} className="claim-btn" title="View task details - Bots claim via API">
+          CLAIM
+        </Link>
+      )}
+      {status === 'claimed' && (
+        <Link href={`/tasks/${id}`} className="claim-btn claimed" title="Task already claimed by a bot">
+          CLAIMED
+        </Link>
+      )}
+      {status === 'completed' && (
+        <Link href={`/tasks/${id}`} className="claim-btn completed" title="Task completed">
+          DONE
+        </Link>
+      )}
     </div>
   )
 }

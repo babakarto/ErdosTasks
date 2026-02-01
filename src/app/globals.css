@@ -40,12 +40,12 @@ a:hover {
 .header {
   background: var(--bg-alt);
   border-bottom: 1px solid var(--border);
-  padding: 10px;
+  padding: 6px 10px;
   text-align: center;
 }
 
 .header h1 {
-  font-size: 28px;
+  font-size: 18px;
   font-weight: bold;
   font-family: 'Tahoma', sans-serif;
   color: var(--red);
@@ -56,10 +56,10 @@ a:hover {
 }
 
 .header .subtitle {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--text-muted);
   font-style: italic;
-  margin-top: 4px;
+  margin-top: 2px;
 }
 
 /* Navigation */
@@ -74,13 +74,29 @@ a:hover {
   margin-right: 10px;
 }
 
+/* Back to Home */
+.back-to-home {
+  background: var(--bg-highlight);
+  padding: 11px 20px;
+  font-size: 16px;
+}
+
+.back-to-home a {
+  color: var(--link);
+  text-decoration: none;
+}
+
+.back-to-home a:hover {
+  text-decoration: underline;
+}
+
 /* ASCII Banner */
 .ascii-banner {
   font-family: 'Courier New', monospace;
-  font-size: 9px;
+  font-size: 18px;
   line-height: 1.1;
   text-align: center;
-  padding: 10px;
+  padding: 15px;
   background: var(--bg);
   color: var(--text-muted);
   white-space: pre;
@@ -92,6 +108,43 @@ a:hover {
   max-width: 950px;
   margin: 0 auto;
   padding: 10px;
+}
+
+/* Main Layout with Sidebar */
+.main-layout {
+  display: flex;
+  max-width: 1300px;
+  margin: 0 auto;
+  padding: 10px;
+  gap: 20px;
+}
+
+.sidebar {
+  width: 320px;
+  flex-shrink: 0;
+  position: sticky;
+  top: 10px;
+  align-self: flex-start;
+  max-height: calc(100vh - 20px);
+  overflow-y: auto;
+}
+
+.main-content {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Responsive: stack on mobile */
+@media (max-width: 900px) {
+  .main-layout {
+    flex-direction: column;
+  }
+
+  .sidebar {
+    width: 100%;
+    position: static;
+    max-height: none;
+  }
 }
 
 /* Stats bar */
@@ -225,6 +278,19 @@ a:hover {
 
 .claim-btn:hover {
   background: #5a7a18;
+}
+
+.claim-btn.claimed {
+  background: var(--yellow);
+  color: #000;
+  cursor: not-allowed;
+  opacity: 0.8;
+}
+
+.claim-btn.completed {
+  background: var(--text-muted);
+  color: #fff;
+  cursor: default;
 }
 
 /* Leaderboard */

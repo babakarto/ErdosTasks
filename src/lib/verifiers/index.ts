@@ -8,7 +8,7 @@ import {
   verifyCollatzSequence,
   verifyCollatzRange,
 } from './collatz'
-import { verifySidonSet, findAllSidonSets } from './sidon'
+import { verifySidonSet, findAllSidonSets, countSidonSets, findMaxSidonSet } from './sidon'
 import type { TaskType } from '@/types/database'
 
 export interface VerificationResult {
@@ -265,26 +265,48 @@ function verifySidonTask(
     const computeType = parameters.computeType as string
 
     if (computeType === 'verify_set') {
-      const set = answer.set as number[]
-      if (!Array.isArray(set)) {
+      // The task provides a set in parameters, bot must determine if it's a Sidon set
+      const taskSet = parameters.set as number[]
+      if (!Array.isArray(taskSet)) {
         return {
           verified: false,
-          message: 'Answer must contain set array',
+          message: 'Task parameters missing set array',
         }
       }
 
-      const result = verifySidonSet(set)
-      return {
-        verified: result.valid,
-        message: result.valid
-          ? `Correct! Set [${set.join(', ')}] is a valid Sidon set`
-          : result.error || 'Invalid Sidon set',
+      // Bot should answer with {is_sidon: boolean, pairwise_sums?: number[]}
+      const botAnswer = answer.is_sidon as boolean
+      if (typeof botAnswer !== 'boolean') {
+        return {
+          verified: false,
+          message: 'Answer must contain is_sidon boolean',
+        }
+      }
+
+      // Compute the actual result
+      const result = verifySidonSet(taskSet)
+      const isActuallySidon = result.valid
+
+      if (botAnswer === isActuallySidon) {
+        return {
+          verified: true,
+          message: isActuallySidon
+            ? `Correct! Set [${taskSet.join(', ')}] is a valid Sidon set`
+            : `Correct! Set [${taskSet.join(', ')}] is NOT a Sidon set: ${result.error}`,
+        }
+      } else {
+        return {
+          verified: false,
+          message: botAnswer
+            ? `Wrong! Set [${taskSet.join(', ')}] is NOT a Sidon set: ${result.error}`
+            : `Wrong! Set [${taskSet.join(', ')}] IS a valid Sidon set`,
+        }
       }
     }
 
     if (computeType === 'find_all') {
-      const maxElement = parameters.maxElement as number
-      const setSize = parameters.setSize as number
+      const maxElement = (parameters.max_element ?? parameters.maxElement) as number
+      const setSize = (parameters.set_size ?? parameters.setSize) as number
       const sets = answer.sets as number[][]
 
       if (!Array.isArray(sets)) {
@@ -333,6 +355,77 @@ function verifySidonTask(
       return {
         verified: true,
         message: `Correct! Found all ${sets.length} Sidon sets of size ${setSize} in [1, ${maxElement}]`,
+      }
+    }
+
+    if (computeType === 'count') {
+      const maxElement = (parameters.max_element ?? parameters.maxElement) as number
+      const setSize = (parameters.set_size ?? parameters.setSize) as number
+      const count = answer.count as number
+
+      if (typeof count !== 'number') {
+        return {
+          verified: false,
+          message: 'Answer must contain count (number)',
+        }
+      }
+
+      const actualCount = countSidonSets(maxElement, setSize)
+
+      if (count !== actualCount) {
+        return {
+          verified: false,
+          message: `Incorrect count: got ${count}, expected ${actualCount}`,
+        }
+      }
+
+      return {
+        verified: true,
+        message: `Correct! There are ${count} Sidon sets of size ${setSize} in [1, ${maxElement}]`,
+      }
+    }
+
+    if (computeType === 'find_maximum') {
+      const maxElement = (parameters.max_element ?? parameters.maxElement) as number
+      const set = answer.set as number[]
+
+      if (!Array.isArray(set)) {
+        return {
+          verified: false,
+          message: 'Answer must contain set array',
+        }
+      }
+
+      // Verify it's a valid Sidon set
+      const result = verifySidonSet(set)
+      if (!result.valid) {
+        return {
+          verified: false,
+          message: `Invalid Sidon set: ${result.error}`,
+        }
+      }
+
+      // Check range
+      if (set.some(n => n > maxElement || n < 1)) {
+        return {
+          verified: false,
+          message: `Set contains elements outside [1, ${maxElement}]`,
+        }
+      }
+
+      // Find actual maximum
+      const actualMax = findMaxSidonSet(maxElement)
+
+      if (set.length < actualMax.length) {
+        return {
+          verified: false,
+          message: `Found set of size ${set.length}, but maximum is ${actualMax.length}`,
+        }
+      }
+
+      return {
+        verified: true,
+        message: `Correct! Found maximum Sidon set of size ${set.length} in [1, ${maxElement}]`,
       }
     }
 

@@ -11,17 +11,21 @@ export function isClaimValid(claimedAt: string | null): boolean {
     return false
   }
 
-  const claimTime = new Date(claimedAt).getTime()
+  // Ensure UTC parsing by adding Z if not present
+  const utcTimestamp = claimedAt.endsWith('Z') ? claimedAt : claimedAt + 'Z'
+  const claimTime = new Date(utcTimestamp).getTime()
+  const now = Date.now()
   const expirationTime = claimTime + CLAIM_DURATION_MS
 
-  return Date.now() < expirationTime
+  return now < expirationTime
 }
 
 /**
  * Get the expiration time for a claim
  */
 export function getClaimExpiration(claimedAt: string): Date {
-  const claimTime = new Date(claimedAt).getTime()
+  const utcTimestamp = claimedAt.endsWith('Z') ? claimedAt : claimedAt + 'Z'
+  const claimTime = new Date(utcTimestamp).getTime()
   return new Date(claimTime + CLAIM_DURATION_MS)
 }
 
