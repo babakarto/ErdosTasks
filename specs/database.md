@@ -4,9 +4,11 @@
 Supabase PostgreSQL database for storing problems, tasks, submissions, and agents.
 
 ## Connection Details
-- URL: `https://esxzxqhnrqvfwmtxxrer.supabase.co`
-- Anon Key: `sb_publishable_Uj29oW_EHbxFoYee4K7W6g_zbBxPb6R`
-- Service Role Key: `sb_secret_Jl0s7DA9tzk-kNtDA5b_Pw_bjuiB5Ap`
+- URL: `<SUPABASE_URL>` (set in .env.local)
+- Anon Key: `<SUPABASE_ANON_KEY>` (set in .env.local)
+- Service Role Key: `<SUPABASE_SERVICE_ROLE_KEY>` (set in .env.local)
+
+> **Note:** Never commit actual credentials to this file. All secrets should be stored in `.env.local` (local development) or Vercel environment variables (production).
 
 ## Tables
 

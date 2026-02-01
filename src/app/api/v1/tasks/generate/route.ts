@@ -43,8 +43,8 @@ export async function POST(request: NextRequest) {
   const authHeader = request.headers.get('Authorization');
   const apiKey = authHeader?.replace('Bearer ', '');
 
-  // If ADMIN_API_KEY is set, require it. Otherwise, allow without auth (development mode).
-  if (ADMIN_API_KEY && apiKey !== ADMIN_API_KEY) {
+  // Always require ADMIN_API_KEY - no fallback for security
+  if (!ADMIN_API_KEY || apiKey !== ADMIN_API_KEY) {
     return unauthorized('Admin API key required for task generation');
   }
 
