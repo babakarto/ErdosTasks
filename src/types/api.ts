@@ -87,6 +87,7 @@ export interface RegisterAgentResponse {
   api_key: string
   claim_token: string
   claim_url: string
+  guide?: Record<string, unknown>
 }
 
 export interface AgentMeResponse extends Omit<Agent, 'api_key' | 'claim_token'> {
