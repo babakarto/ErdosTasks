@@ -162,7 +162,7 @@ function verifyCollatzTask(
     const n = parameters.n as number | string
 
     if (computeType === 'stopping_time') {
-      const stoppingTime = answer.stoppingTime as number
+      const stoppingTime = (answer.stoppingTime ?? answer.stopping_time) as number
       if (typeof stoppingTime !== 'number') {
         return {
           verified: false,
@@ -180,7 +180,7 @@ function verifyCollatzTask(
     }
 
     if (computeType === 'max_value') {
-      const maxValue = answer.maxValue as number | string
+      const maxValue = (answer.maxValue ?? answer.max_value) as number | string
       if (maxValue === undefined) {
         return {
           verified: false,
@@ -222,9 +222,9 @@ function verifyCollatzTask(
   }
 
   if (taskType === 'VERIFY') {
-    const rangeStart = parameters.rangeStart as number | string
-    const rangeEnd = parameters.rangeEnd as number | string
-    const allReach1 = answer.allReach1 as boolean
+    const rangeStart = (parameters.rangeStart ?? parameters.range_start) as number | string
+    const rangeEnd = (parameters.rangeEnd ?? parameters.range_end) as number | string
+    const allReach1 = (answer.allReach1 ?? answer.all_reach_1) as boolean
 
     if (typeof allReach1 !== 'boolean') {
       return {
@@ -298,8 +298,8 @@ function verifySidonTask(
         }
       }
 
-      // Bot should answer with {is_sidon: boolean, pairwise_sums?: number[]}
-      const botAnswer = answer.is_sidon as boolean
+      // Bot should answer with {is_sidon: boolean} or {isSidon: boolean}
+      const botAnswer = (answer.is_sidon ?? answer.isSidon) as boolean
       if (typeof botAnswer !== 'boolean') {
         return {
           verified: false,
@@ -461,7 +461,7 @@ function verifySidonTask(
 
   if (taskType === 'VERIFY') {
     const set = parameters.set as number[]
-    const isSidon = answer.isSidon as boolean
+    const isSidon = (answer.isSidon ?? answer.is_sidon) as boolean
 
     if (typeof isSidon !== 'boolean') {
       return {
