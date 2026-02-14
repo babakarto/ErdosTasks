@@ -158,7 +158,7 @@ function verifyCollatzTask(
   answer: Record<string, unknown>
 ): VerificationResult {
   if (taskType === 'COMPUTE') {
-    const computeType = (parameters.computeType ?? parameters.metric ?? parameters.compute_type) as string
+    const computeType = resolveComputeType(parameters)
     const n = parameters.n as number | string
 
     if (computeType === 'stopping_time') {
@@ -256,14 +256,28 @@ function verifyCollatzTask(
   }
 }
 
+/** Normalize compute type across old seed (operation) and new generator (computeType) naming */
+function resolveComputeType(parameters: Record<string, unknown>): string | undefined {
+  const raw = (parameters.computeType ?? parameters.operation ?? parameters.metric ?? parameters.compute_type) as string | undefined
+  if (!raw) return undefined
+  // Map old seed names to current verifier names
+  const aliases: Record<string, string> = {
+    verify: 'verify_set',
+    verify_maximal: 'verify_set',
+    enumerate: 'find_all',
+  }
+  return aliases[raw] ?? raw
+}
+
 function verifySidonTask(
   taskType: TaskType,
   parameters: Record<string, unknown>,
   answer: Record<string, unknown>
 ): VerificationResult {
-  if (taskType === 'COMPUTE') {
-    const computeType = parameters.computeType as string
+  // Route by computeType if present (works for both COMPUTE and VERIFY task types)
+  const computeType = resolveComputeType(parameters)
 
+  if (computeType) {
     if (computeType === 'verify_set') {
       // The task provides a set in parameters, bot must determine if it's a Sidon set
       const taskSet = parameters.set as number[]
