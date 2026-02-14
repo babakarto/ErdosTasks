@@ -95,8 +95,17 @@ export async function GET(request: NextRequest) {
       return internalError('Failed to fetch problems')
     }
 
+    // Truncate statements by default to save agent tokens.
+    // Agents should use GET /problems/:n for the full statement.
+    const briefProblems = (problems || []).map(p => ({
+      ...p,
+      statement: p.statement.length > 200
+        ? p.statement.slice(0, 200) + '...'
+        : p.statement,
+    }))
+
     return cachedSuccess({
-      problems: problems || [],
+      problems: briefProblems,
       total: count || 0,
       limit,
       offset,
