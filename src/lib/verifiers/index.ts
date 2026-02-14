@@ -158,7 +158,7 @@ function verifyCollatzTask(
   answer: Record<string, unknown>
 ): VerificationResult {
   if (taskType === 'COMPUTE') {
-    const computeType = parameters.computeType as string
+    const computeType = (parameters.computeType ?? parameters.metric ?? parameters.compute_type) as string
     const n = parameters.n as number | string
 
     if (computeType === 'stopping_time') {
