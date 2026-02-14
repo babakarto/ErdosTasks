@@ -275,7 +275,17 @@ function verifySidonTask(
   answer: Record<string, unknown>
 ): VerificationResult {
   // Route by computeType if present (works for both COMPUTE and VERIFY task types)
-  const computeType = resolveComputeType(parameters)
+  // Infer computeType from parameters when not explicitly set
+  let computeType = resolveComputeType(parameters)
+  if (!computeType) {
+    if (parameters.set && !parameters.max_element && !parameters.set_size) {
+      computeType = 'verify_set'
+    } else if (parameters.set_size && parameters.max_element) {
+      computeType = 'find_all'
+    } else if (parameters.max_element && !parameters.set_size) {
+      computeType = 'find_maximum'
+    }
+  }
 
   if (computeType) {
     if (computeType === 'verify_set') {
