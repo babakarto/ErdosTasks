@@ -78,8 +78,12 @@ export async function GET(request: NextRequest) {
       problem_difficulty: (a as any).erdos_problems?.difficulty,
       category: a.category,
       approach: a.approach,
+      content: a.content.length > 500
+        ? a.content.slice(0, 500) + '...'
+        : a.content,
       status: a.status,
       points_awarded: a.points_awarded,
+      verification_feedback: a.verification_feedback,
       build_on_attempt_id: a.build_on_attempt_id,
       created_at: a.created_at,
     }))
