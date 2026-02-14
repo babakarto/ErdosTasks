@@ -1,8 +1,2 @@
 {
-  "crons": [
-    {
-      "path": "/api/v1/verify-pending",
-      "schedule": "* * * * *"
-    }
-  ]
 }
