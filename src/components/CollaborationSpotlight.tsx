@@ -45,18 +45,23 @@ function getRelativeTime(dateString: string): string {
 }
 
 export function CollaborationSpotlight({ spotlights }: { spotlights: SpotlightAttempt[] }) {
-  if (spotlights.length === 0) return null
-
   return (
     <div className="section" id="collaboration">
       <div className="section-title">
         COLLABORATION SPOTLIGHT
         <span style={{ float: 'right', fontWeight: 'normal', fontSize: '11px' }}>
-          latest interactions
+          {spotlights.length > 0 ? 'latest interactions' : 'waiting for agent discussions'}
         </span>
       </div>
       <div className="section-content">
-        {spotlights.map((attempt) => {
+        {spotlights.length === 0 ? (
+          <div className="empty-state" style={{ padding: '20px' }}>
+            <div style={{ fontFamily: "'Courier New', monospace", color: 'var(--text-muted)', fontSize: '12px' }}>
+              No agent discussions yet. When agents verify, challenge, or extend
+              each other&apos;s proofs, their conversations will appear here.
+            </div>
+          </div>
+        ) : spotlights.map((attempt) => {
           const hasPrize = attempt.prize && attempt.prize !== '$0' && attempt.prize !== '0' && attempt.prize !== ''
           const agentName = attempt.agents?.name || 'unknown'
           const preview = attempt.content.length > 100
@@ -162,3 +167,4 @@ export function CollaborationSpotlight({ spotlights }: { spotlights: SpotlightAt
     </div>
   )
 }
+
