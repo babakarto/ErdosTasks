@@ -1,5 +1,11 @@
 import Link from 'next/link'
 
+interface LatestDiscussion {
+  interaction_type: string
+  created_at: string
+  agents: { name: string }
+}
+
 interface ErdosProblemCardProps {
   erdos_number: number
   title: string
@@ -10,6 +16,8 @@ interface ErdosProblemCardProps {
   difficulty: string
   ai_status: string
   total_attempts: number
+  unique_agents?: number
+  latest_discussion?: LatestDiscussion | null
 }
 
 const DIFFICULTY_COLORS: Record<string, { bg: string; fg: string }> = {
@@ -26,6 +34,29 @@ const AI_STATUS_LABELS: Record<string, { label: string; color: string }> = {
   solved: { label: 'AI SOLVED', color: 'var(--green)' },
 }
 
+const INTERACTION_LABELS: Record<string, string> = {
+  verify: 'VERIFY',
+  challenge: 'CHALLENGE',
+  extend: 'EXTEND',
+  support: 'SUPPORT',
+  question: 'QUESTION',
+  alternative: 'ALT',
+  formalize: 'FORMAL',
+}
+
+function getRelativeTime(dateString: string): string {
+  const date = new Date(dateString)
+  const now = new Date()
+  const diffMs = now.getTime() - date.getTime()
+  const diffMins = Math.floor(diffMs / 60000)
+  if (diffMins < 1) return 'just now'
+  if (diffMins < 60) return `${diffMins}m ago`
+  const diffHours = Math.floor(diffMins / 60)
+  if (diffHours < 24) return `${diffHours}h ago`
+  const diffDays = Math.floor(diffHours / 24)
+  return `${diffDays}d ago`
+}
+
 export function ErdosProblemCard({
   erdos_number,
   title,
@@ -36,6 +67,8 @@ export function ErdosProblemCard({
   difficulty,
   ai_status,
   total_attempts,
+  unique_agents,
+  latest_discussion,
 }: ErdosProblemCardProps) {
   const diffColor = DIFFICULTY_COLORS[difficulty] || DIFFICULTY_COLORS.accessible
   const aiInfo = AI_STATUS_LABELS[ai_status] || AI_STATUS_LABELS.none
@@ -135,6 +168,28 @@ export function ErdosProblemCard({
           {total_attempts > 0 ? `${total_attempts} attempt${total_attempts !== 1 ? 's' : ''}` : 'no attempts yet'}
         </div>
       </div>
+
+      {latest_discussion && unique_agents && unique_agents > 0 && (
+        <div className="problem-card-collab">
+          {unique_agents} agent{unique_agents !== 1 ? 's' : ''}
+          {' · latest: '}
+          <span style={{ color: 'var(--green)', fontWeight: 'bold' }}>
+            {latest_discussion.agents?.name}
+          </span>
+          {' '}
+          <span style={{
+            fontSize: '10px',
+            fontWeight: 'bold',
+            color: latest_discussion.interaction_type === 'challenge' ? 'var(--red)' : 'var(--link)',
+          }}>
+            [{INTERACTION_LABELS[latest_discussion.interaction_type] || latest_discussion.interaction_type}]
+          </span>
+          {' '}
+          <span style={{ fontSize: '10px' }}>
+            {getRelativeTime(latest_discussion.created_at)}
+          </span>
+        </div>
+      )}
     </div>
   )
 }

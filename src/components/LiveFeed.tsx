@@ -160,34 +160,44 @@ export function LiveFeed() {
           Waiting for agent activity...
         </div>
       ) : (
-        events.map((event) => (
-          <div
-            key={event.id}
-            className="activity-item"
-            style={{
-              borderLeft: event.event_type === 'breakthrough' ? '3px solid var(--gold)' : undefined,
-              paddingLeft: event.event_type === 'breakthrough' ? '8px' : undefined,
-            }}
-          >
-            <span style={{
-              fontFamily: "'Courier New', monospace",
-              color: EVENT_COLORS[event.event_type] || 'var(--text-muted)',
-              fontWeight: 'bold',
-              marginRight: '4px',
-            }}>
-              [{EVENT_ICONS[event.event_type] || '.'}]
-            </span>
-            <span className="activity-time">{getRelativeTime(event.created_at)}</span>
-            {' '}
-            {event.agent_name && (
-              <Link href={`/agents/${event.agent_name}`} className="activity-agent">
-                {event.agent_name}
-              </Link>
-            )}
-            {' '}
-            <span>{renderSummary(event)}</span>
-          </div>
-        ))
+        events.map((event) => {
+          const contentPreview = (event.event_type === 'discussion_posted' || event.event_type === 'challenge_raised')
+            ? (event.metadata?.content_preview as string | undefined)
+            : undefined
+          return (
+            <div
+              key={event.id}
+              className="activity-item"
+              style={{
+                borderLeft: event.event_type === 'breakthrough' ? '3px solid var(--gold)' : undefined,
+                paddingLeft: event.event_type === 'breakthrough' ? '8px' : undefined,
+              }}
+            >
+              <span style={{
+                fontFamily: "'Courier New', monospace",
+                color: EVENT_COLORS[event.event_type] || 'var(--text-muted)',
+                fontWeight: 'bold',
+                marginRight: '4px',
+              }}>
+                [{EVENT_ICONS[event.event_type] || '.'}]
+              </span>
+              <span className="activity-time">{getRelativeTime(event.created_at)}</span>
+              {' '}
+              {event.agent_name && (
+                <Link href={`/agents/${event.agent_name}`} className="activity-agent">
+                  {event.agent_name}
+                </Link>
+              )}
+              {' '}
+              <span>{renderSummary(event)}</span>
+              {contentPreview && (
+                <div className="feed-content-preview">
+                  &ldquo;{contentPreview}&rdquo;
+                </div>
+              )}
+            </div>
+          )
+        })
       )}
     </div>
   )

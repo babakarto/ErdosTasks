@@ -113,6 +113,28 @@ async function renderErdosProblem(num: number) {
     discussionsByAttempt.set(d.attempt_id, list)
   }
 
+  // Build a name map from attempt_id -> agent name for the timeline
+  const attemptAgentMap = new Map<string, string>()
+  for (const a of attempts) {
+    attemptAgentMap.set(a.id, (a as any).agents?.name || 'unknown')
+  }
+
+  // Build progress timeline: merge attempts + discussions, sorted newest first
+  type TimelineEntry =
+    | { type: 'attempt'; time: string; data: any }
+    | { type: 'discussion'; time: string; data: any; attemptAuthor: string }
+
+  const timelineEntries: TimelineEntry[] = []
+
+  for (const a of attempts) {
+    timelineEntries.push({ type: 'attempt', time: a.created_at, data: a })
+  }
+  for (const d of discussions) {
+    const author = attemptAgentMap.get(d.attempt_id) || 'unknown'
+    timelineEntries.push({ type: 'discussion', time: d.created_at, data: d, attemptAuthor: author })
+  }
+  timelineEntries.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime())
+
   const hasPrize = problem.prize && problem.prize !== '$0' && problem.prize !== '0' && problem.prize !== ''
 
   return (
@@ -204,6 +226,104 @@ async function renderErdosProblem(num: number) {
             </div>
           </div>
         </div>
+
+        {/* Progress Timeline — only shown when there are attempts */}
+        {timelineEntries.length > 0 && (
+          <div className="section">
+            <div className="section-title">
+              PROGRESS TIMELINE
+              <span style={{ float: 'right', fontWeight: 'normal', fontSize: '11px' }}>
+                newest first
+              </span>
+            </div>
+            <div className="section-content" style={{ padding: '0' }}>
+              {timelineEntries.slice(0, 15).map((entry, i) => {
+                if (entry.type === 'attempt') {
+                  const a = entry.data
+                  const agentName = (a as any).agents?.name || 'unknown'
+                  const statusColor = STATUS_COLORS[a.status] || 'var(--text-muted)'
+                  return (
+                    <div key={`a-${a.id}`}>
+                      {i > 0 && <hr className="timeline-separator" />}
+                      <div className="timeline-item attempt">
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <div>
+                            <span style={{ color: 'var(--text-muted)', fontFamily: "'Courier New', monospace", fontSize: '11px', marginRight: '8px' }}>
+                              {getRelativeTime(a.created_at)}
+                            </span>
+                            <Link href={`/agents/${agentName}`} className="activity-agent">
+                              {agentName}
+                            </Link>
+                            {' submitted '}
+                            <span style={{
+                              fontSize: '10px', padding: '1px 4px', fontWeight: 'bold',
+                              background: a.category === 'proof' ? '#cfc' : '#ccf',
+                              color: a.category === 'proof' ? '#060' : '#006',
+                            }}>
+                              [{a.category}]
+                            </span>
+                          </div>
+                          <div>
+                            <span style={{ fontWeight: 'bold', color: statusColor, fontSize: '11px' }}>
+                              {a.status.toUpperCase().replace('_', ' ')}
+                            </span>
+                            {a.points_awarded > 0 && (
+                              <span style={{ marginLeft: '6px', fontFamily: "'Courier New', monospace", color: 'var(--gold)', fontWeight: 'bold', fontSize: '11px' }}>
+                                +{a.points_awarded}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        {a.approach && (
+                          <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px', fontStyle: 'italic' }}>
+                            approach: &ldquo;{a.approach}&rdquo;
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )
+                } else {
+                  const d = entry.data
+                  const info = INTERACTION_LABELS[d.interaction_type] || { label: d.interaction_type, color: 'var(--text-muted)' }
+                  const dAgentName = d.agents?.name || 'unknown'
+                  const preview = d.content.length > 120 ? d.content.slice(0, 120) + '...' : d.content
+                  const cssClass = d.interaction_type === 'challenge' ? 'challenge' : 'discussion'
+                  return (
+                    <div key={`d-${d.id}`}>
+                      {i > 0 && <hr className="timeline-separator" />}
+                      <div className={`timeline-item ${cssClass}`}>
+                        <div>
+                          <span style={{ color: 'var(--text-muted)', fontFamily: "'Courier New', monospace", fontSize: '11px', marginRight: '8px' }}>
+                            {getRelativeTime(d.created_at)}
+                          </span>
+                          <Link href={`/agents/${dAgentName}`} className="activity-agent">
+                            {dAgentName}
+                          </Link>
+                          {' '}
+                          <span style={{
+                            fontWeight: 'bold',
+                            color: info.color,
+                            fontSize: '9px',
+                            padding: '0px 3px',
+                            border: `1px solid ${info.color}`,
+                          }}>
+                            {info.label}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px', fontStyle: 'italic' }}>
+                          &ldquo;{preview}&rdquo;
+                        </div>
+                        <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '1px' }}>
+                          &rarr; on {(entry as any).attemptAuthor}&apos;s attempt
+                        </div>
+                      </div>
+                    </div>
+                  )
+                }
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Attempts */}
         <div className="section">

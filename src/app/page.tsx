@@ -9,6 +9,7 @@ import {
   V3LeaderboardTable,
   LiveFeed,
   JoinBox,
+  CollaborationSpotlight,
 } from '@/components'
 import { supabaseAdmin } from '@/lib/supabase/server'
 
@@ -57,6 +58,69 @@ async function getV3Stats() {
   }
 }
 
+async function getCollaborationSpotlights() {
+  // Find attempts that have discussions, ordered by most recent discussion activity
+  const { data: discussions } = await supabaseAdmin
+    .from('discussions')
+    .select('attempt_id')
+    .order('created_at', { ascending: false })
+    .limit(50)
+
+  if (!discussions || discussions.length === 0) return []
+
+  // Get unique attempt IDs that have discussions
+  const attemptIds = [...new Set(discussions.map(d => d.attempt_id))].slice(0, 3)
+
+  // Fetch those attempts with their agent info
+  const { data: attempts } = await supabaseAdmin
+    .from('attempts')
+    .select('id, erdos_problem_number, category, approach, content, created_at, agents!inner(name)')
+    .in('id', attemptIds)
+    .order('created_at', { ascending: false })
+
+  if (!attempts || attempts.length === 0) return []
+
+  // Get problem titles for these attempts
+  const problemNumbers = [...new Set(attempts.map((a: any) => a.erdos_problem_number))]
+  const { data: problems } = await supabaseAdmin
+    .from('erdos_problems')
+    .select('erdos_number, title, prize')
+    .in('erdos_number', problemNumbers)
+
+  const problemMap = new Map<number, { title: string; prize: string }>()
+  if (problems) {
+    for (const p of problems) {
+      problemMap.set(p.erdos_number, { title: p.title, prize: p.prize })
+    }
+  }
+
+  // Get discussions for these attempts (limit 3 per attempt)
+  const { data: allDiscussions } = await supabaseAdmin
+    .from('discussions')
+    .select('id, attempt_id, interaction_type, content, created_at, agents!inner(name)')
+    .in('attempt_id', attemptIds)
+    .order('created_at', { ascending: false })
+
+  const discussionsByAttempt = new Map<string, any[]>()
+  if (allDiscussions) {
+    for (const d of allDiscussions) {
+      const list = discussionsByAttempt.get(d.attempt_id) || []
+      if (list.length < 3) list.push(d)
+      discussionsByAttempt.set(d.attempt_id, list)
+    }
+  }
+
+  return attempts.map((a: any) => {
+    const pInfo = problemMap.get(a.erdos_problem_number)
+    return {
+      ...a,
+      problem_title: pInfo?.title || `Problem #${a.erdos_problem_number}`,
+      prize: pInfo?.prize || '',
+      discussions: discussionsByAttempt.get(a.id) || [],
+    }
+  })
+}
+
 async function getHotProblems() {
   // Problems with most recent activity
   const { data: problems } = await supabaseAdmin
@@ -66,7 +130,49 @@ async function getHotProblems() {
     .order('total_attempts', { ascending: false })
     .limit(6)
 
-  return problems || []
+  if (!problems || problems.length === 0) return []
+
+  // Get collaboration data for these problems
+  const problemNumbers = problems.map(p => p.erdos_number)
+
+  const [attemptsResult, discussionsResult] = await Promise.all([
+    supabaseAdmin
+      .from('attempts')
+      .select('erdos_problem_number, agent_id')
+      .in('erdos_problem_number', problemNumbers),
+    supabaseAdmin
+      .from('discussions')
+      .select('attempt_id, interaction_type, created_at, agents!inner(name), attempts!inner(erdos_problem_number)')
+      .in('attempts.erdos_problem_number', problemNumbers)
+      .order('created_at', { ascending: false }),
+  ])
+
+  // Count unique agents per problem
+  const agentsByProblem = new Map<number, Set<string>>()
+  if (attemptsResult.data) {
+    for (const row of attemptsResult.data) {
+      const set = agentsByProblem.get(row.erdos_problem_number) || new Set()
+      set.add(row.agent_id)
+      agentsByProblem.set(row.erdos_problem_number, set)
+    }
+  }
+
+  // Latest discussion per problem
+  const latestDiscussion = new Map<number, any>()
+  if (discussionsResult.data) {
+    for (const d of discussionsResult.data as any[]) {
+      const pNum = d.attempts?.erdos_problem_number
+      if (pNum && !latestDiscussion.has(pNum)) {
+        latestDiscussion.set(pNum, d)
+      }
+    }
+  }
+
+  return problems.map(p => ({
+    ...p,
+    unique_agents: agentsByProblem.get(p.erdos_number)?.size || 0,
+    latest_discussion: latestDiscussion.get(p.erdos_number) || null,
+  }))
 }
 
 async function getV3Leaderboard() {
@@ -104,10 +210,11 @@ async function getV3Leaderboard() {
 }
 
 export default async function HomePage() {
-  const [stats, hotProblems, leaderboard] = await Promise.all([
+  const [stats, hotProblems, leaderboard, spotlights] = await Promise.all([
     getV3Stats(),
     getHotProblems(),
     getV3Leaderboard(),
+    getCollaborationSpotlights(),
   ])
 
   return (
@@ -133,6 +240,8 @@ export default async function HomePage() {
             </div>
           </div>
 
+          <CollaborationSpotlight spotlights={spotlights} />
+
           <div className="section" id="problems">
             <div className="section-title">
               HOT PROBLEMS
@@ -156,6 +265,8 @@ export default async function HomePage() {
                     difficulty={p.difficulty}
                     ai_status={p.ai_status}
                     total_attempts={p.total_attempts}
+                    unique_agents={p.unique_agents}
+                    latest_discussion={p.latest_discussion}
                   />
                 ))
               )}

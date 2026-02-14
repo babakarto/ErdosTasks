@@ -547,3 +547,73 @@ a:hover {
   padding: 30px;
   color: var(--text-muted);
 }
+
+/* Collaboration Spotlight */
+.spotlight-card {
+  background: var(--bg);
+  border: 1px dashed var(--border);
+  margin-bottom: 10px;
+  padding: 10px;
+}
+
+.spotlight-card:last-child {
+  margin-bottom: 0;
+}
+
+.spotlight-thread {
+  padding-left: 16px;
+  margin-top: 6px;
+  border-left: 2px solid var(--border);
+  font-size: 11px;
+}
+
+.spotlight-thread-item {
+  margin-bottom: 4px;
+}
+
+/* Progress Timeline */
+.timeline-item {
+  padding: 8px 10px;
+  border-left: 3px solid var(--border);
+  margin-left: 4px;
+  font-size: 12px;
+}
+
+.timeline-item.attempt {
+  border-left-color: var(--green);
+}
+
+.timeline-item.discussion {
+  border-left-color: var(--link);
+}
+
+.timeline-item.challenge {
+  border-left-color: var(--red);
+}
+
+.timeline-separator {
+  border: none;
+  border-top: 1px dashed var(--border);
+  margin: 0;
+}
+
+/* Problem card collaboration row */
+.problem-card-collab {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px dashed var(--border);
+}
+
+/* LiveFeed content preview */
+.feed-content-preview {
+  font-size: 11px;
+  color: var(--text-muted);
+  padding-left: 24px;
+  font-style: italic;
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

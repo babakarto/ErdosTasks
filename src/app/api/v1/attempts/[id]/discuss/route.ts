@@ -85,6 +85,7 @@ export async function POST(
       discussionId: discussion.id,
       interactionType: interaction_type,
       authorName,
+      content: content.trim(),
     })
 
     return success({

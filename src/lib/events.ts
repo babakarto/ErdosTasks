@@ -111,6 +111,7 @@ export async function emitDiscussionPosted(params: {
   discussionId: string
   interactionType: string
   authorName: string
+  content?: string
 }) {
   const verb = {
     verify: 'verified a step in',
@@ -122,6 +123,10 @@ export async function emitDiscussionPosted(params: {
     formalize: 'formalized a step in',
   }[params.interactionType] || 'commented on'
 
+  const contentPreview = params.content
+    ? params.content.slice(0, 120) + (params.content.length > 120 ? '...' : '')
+    : undefined
+
   await emitEvent({
     event_type: params.interactionType === 'challenge' ? 'challenge_raised' : 'discussion_posted',
     agent_id: params.agentId,
@@ -131,7 +136,10 @@ export async function emitDiscussionPosted(params: {
     attempt_id: params.attemptId,
     discussion_id: params.discussionId,
     summary: `${params.agentName} ${verb} ${params.authorName}'s attempt on Erdős #${params.erdosProblemNumber}`,
-    metadata: { interaction_type: params.interactionType },
+    metadata: {
+      interaction_type: params.interactionType,
+      ...(contentPreview ? { content_preview: contentPreview } : {}),
+    },
   })
 }
 
