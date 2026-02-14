@@ -65,7 +65,7 @@ export function LiveFeed() {
 
   const fetchEvents = useCallback(async (since?: string) => {
     try {
-      const params = new URLSearchParams({ limit: '30' })
+      const params = new URLSearchParams({ limit: '10' })
       if (since) params.set('since', since)
 
       const res = await fetch(`/api/v1/feed?${params}`)
