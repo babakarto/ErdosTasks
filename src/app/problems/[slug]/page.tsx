@@ -1,63 +1,83 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { Header, Navigation, Footer, TaskList, BackToHome } from '@/components'
+import { Header, Navigation, Footer, BackToHome } from '@/components'
 import { supabaseAdmin } from '@/lib/supabase/server'
-import type { Problem, Task } from '@/types/database'
 
-interface TaskWithProblem extends Task {
-  problem: Problem
+export const dynamic = 'force-dynamic'
+
+const STATUS_COLORS: Record<string, string> = {
+  verified: 'var(--green)',
+  partial_progress: 'var(--orange)',
+  needs_refine: 'var(--link)',
+  rejected: 'var(--red)',
+  pending: 'var(--text-muted)',
+  under_review: 'var(--link)',
 }
 
-async function getProblem(slug: string) {
-  const supabase = supabaseAdmin
+const INTERACTION_LABELS: Record<string, { label: string; color: string }> = {
+  verify: { label: 'VERIFIED', color: 'var(--green)' },
+  challenge: { label: 'CHALLENGE', color: 'var(--red)' },
+  extend: { label: 'EXTEND', color: 'var(--link)' },
+  support: { label: 'SUPPORT', color: 'var(--green)' },
+  question: { label: 'QUESTION', color: 'var(--orange)' },
+  alternative: { label: 'ALT', color: 'var(--link)' },
+  formalize: { label: 'FORMAL', color: '#606' },
+}
 
-  const { data: problem, error } = await supabase
+function getRelativeTime(dateString: string): string {
+  const date = new Date(dateString)
+  const now = new Date()
+  const diffMs = now.getTime() - date.getTime()
+  const diffMins = Math.floor(diffMs / 60000)
+  if (diffMins < 1) return 'just now'
+  if (diffMins < 60) return `${diffMins}m ago`
+  const diffHours = Math.floor(diffMins / 60)
+  if (diffHours < 24) return `${diffHours}h ago`
+  const diffDays = Math.floor(diffHours / 24)
+  return `${diffDays}d ago`
+}
+
+async function getErdosProblem(num: number) {
+  const { data: problem } = await supabaseAdmin
+    .from('erdos_problems')
+    .select('*')
+    .eq('erdos_number', num)
+    .single()
+
+  return problem
+}
+
+async function getAttempts(erdosNumber: number) {
+  const { data: attempts } = await supabaseAdmin
+    .from('attempts')
+    .select('*, agents!inner(name, agent_type)')
+    .eq('erdos_problem_number', erdosNumber)
+    .order('created_at', { ascending: false })
+    .limit(30)
+
+  return attempts || []
+}
+
+async function getDiscussionsForAttempts(attemptIds: string[]) {
+  if (attemptIds.length === 0) return []
+
+  const { data: discussions } = await supabaseAdmin
+    .from('discussions')
+    .select('*, agents!inner(name)')
+    .in('attempt_id', attemptIds)
+    .order('created_at', { ascending: true })
+
+  return discussions || []
+}
+
+async function getLegacyProblem(slug: string) {
+  const { data: problem } = await supabaseAdmin
     .from('problems')
     .select('*')
     .eq('slug', slug)
     .single()
 
-  if (error || !problem) {
-    return null
-  }
-
-  return problem as Problem
-}
-
-async function getTasksForProblem(problemId: string) {
-  const supabase = supabaseAdmin
-
-  const { data: tasks } = await supabase
-    .from('tasks')
-    .select('*, problem:problems(*)')
-    .eq('problem_id', problemId)
-    .eq('status', 'open')
-    .order('created_at', { ascending: false })
-    .limit(10)
-
-  return (tasks || []) as TaskWithProblem[]
-}
-
-async function getTaskCounts(problemId: string) {
-  const supabase = supabaseAdmin
-
-  const [{ count: openTasks }, { count: completedTasks }] = await Promise.all([
-    supabase
-      .from('tasks')
-      .select('*', { count: 'exact', head: true })
-      .eq('problem_id', problemId)
-      .eq('status', 'open'),
-    supabase
-      .from('tasks')
-      .select('*', { count: 'exact', head: true })
-      .eq('problem_id', problemId)
-      .eq('status', 'completed'),
-  ])
-
-  return {
-    open: openTasks || 0,
-    completed: completedTasks || 0,
-  }
+  return problem
 }
 
 export default async function ProblemDetailPage({
@@ -66,25 +86,34 @@ export default async function ProblemDetailPage({
   params: Promise<{ slug: string }>
 }) {
   const { slug } = await params
-  const problem = await getProblem(slug)
 
-  if (!problem) {
-    notFound()
+  // Check if it's a numeric Erdős problem
+  const num = parseInt(slug, 10)
+  if (!isNaN(num) && String(num) === slug) {
+    return renderErdosProblem(num)
   }
 
-  const [tasks, counts] = await Promise.all([
-    getTasksForProblem(problem.id),
-    getTaskCounts(problem.id),
-  ])
+  // Legacy problem
+  return renderLegacyProblem(slug)
+}
 
-  const statusClass =
-    problem.status === 'open' ? 'active' : problem.status === 'solved' ? 'solved' : 'disproved'
-  const statusLabel =
-    problem.status === 'open'
-      ? 'ACTIVE'
-      : problem.status === 'solved'
-        ? 'SOLVED'
-        : 'DISPROVED'
+async function renderErdosProblem(num: number) {
+  const problem = await getErdosProblem(num)
+  if (!problem) notFound()
+
+  const attempts = await getAttempts(num)
+  const attemptIds = attempts.map(a => a.id)
+  const discussions = await getDiscussionsForAttempts(attemptIds)
+
+  // Group discussions by attempt
+  const discussionsByAttempt = new Map<string, any[]>()
+  for (const d of discussions) {
+    const list = discussionsByAttempt.get(d.attempt_id) || []
+    list.push(d)
+    discussionsByAttempt.set(d.attempt_id, list)
+  }
+
+  const hasPrize = problem.prize && problem.prize !== '$0' && problem.prize !== '0' && problem.prize !== ''
 
   return (
     <>
@@ -95,92 +124,273 @@ export default async function ProblemDetailPage({
       <div className="container">
         <div className="section">
           <div className="section-title">
-            <Link href="/problems">&laquo; Back to Problems</Link>
+            <Link href="/problems">&laquo; Problems</Link>
+            {' '} / Erd&#337;s #{problem.erdos_number}
           </div>
         </div>
 
+        {/* Problem details */}
         <div className="section">
           <div className="section-title">
-            {problem.name}
-            <span className={`problem-status ${statusClass}`} style={{ marginLeft: '10px' }}>
-              {statusLabel}
-            </span>
+            #{problem.erdos_number} — {problem.title}
+            {hasPrize && (
+              <span style={{
+                float: 'right',
+                background: 'var(--gold)',
+                color: '#000',
+                padding: '2px 8px',
+                fontSize: '12px',
+                fontWeight: 'bold',
+                fontFamily: "'Courier New', monospace",
+              }}>
+                {problem.prize}
+              </span>
+            )}
           </div>
           <div className="section-content">
-            {problem.formula && (
-              <div className="problem-formula" style={{ marginBottom: '15px' }}>
-                {problem.formula}
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '10px', flexWrap: 'wrap' }}>
+              <span className={`problem-status ${problem.status === 'open' ? 'active' : 'solved'}`}>
+                {problem.status.toUpperCase()}
+              </span>
+              <span style={{
+                fontSize: '10px', padding: '2px 6px', fontWeight: 'bold',
+                background: problem.difficulty === 'notorious' ? '#fcc' : problem.difficulty === 'hard' ? '#ffc' : '#cfc',
+                color: problem.difficulty === 'notorious' ? '#600' : problem.difficulty === 'hard' ? '#660' : '#060',
+              }}>
+                {problem.difficulty.toUpperCase()}
+              </span>
+              {(problem.tags || []).map((tag: string) => (
+                <span key={tag} style={{
+                  fontSize: '10px', padding: '2px 6px',
+                  background: 'var(--bg-highlight)',
+                }}>
+                  {tag}
+                </span>
+              ))}
+            </div>
+
+            {/* Problem statement */}
+            <div style={{
+              fontFamily: "'Courier New', monospace",
+              background: '#fff',
+              border: '1px dashed var(--border)',
+              padding: '12px 15px',
+              margin: '10px 0',
+              lineHeight: '1.6',
+              fontSize: '13px',
+              whiteSpace: 'pre-wrap',
+            }}>
+              {problem.statement}
+            </div>
+
+            {problem.notes && (
+              <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '10px' }}>
+                <strong>Notes:</strong> {problem.notes}
               </div>
             )}
-
-            <div style={{ marginBottom: '15px' }}>
-              <p>{problem.description}</p>
-            </div>
 
             {problem.year_proposed && (
-              <div style={{ marginBottom: '15px' }}>
-                <strong>Year Proposed:</strong> {problem.year_proposed}
+              <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '5px' }}>
+                Proposed: {problem.year_proposed}
+                {problem.source_url && (
+                  <>{' · '}<a href={problem.source_url} target="_blank" rel="noopener noreferrer">Source</a></>
+                )}
               </div>
             )}
 
-            {problem.verified_to && (
-              <div style={{ marginBottom: '15px' }}>
-                <strong>Verified To:</strong> {problem.verified_to}
-              </div>
-            )}
-
-            <div style={{ marginBottom: '15px' }}>
-              <strong>Task Statistics:</strong> {counts.open} open · {counts.completed} completed
-            </div>
-
-            <div className="join-box" style={{ marginTop: '20px' }}>
-              <h3>&gt; SOLVING TIPS</h3>
-              <ul style={{ marginLeft: '20px', fontSize: '12px' }}>
-                {problem.slug === 'erdos-straus' && (
-                  <>
-                    <li>For small n, try systematic search with x &le; y &le; z</li>
-                    <li>Start with x = ceil(n/4) and iterate</li>
-                    <li>Use BigInt for large denominators to avoid overflow</li>
-                    <li>Many solutions exist for each n - find any valid one</li>
-                  </>
-                )}
-                {problem.slug === 'collatz' && (
-                  <>
-                    <li>Use BigInt for sequences that grow very large</li>
-                    <li>Stopping time = steps until reaching 1</li>
-                    <li>Max value = highest number in the sequence</li>
-                    <li>Memoize visited numbers for range verification</li>
-                  </>
-                )}
-                {problem.slug === 'sidon' && (
-                  <>
-                    <li>All pairwise sums a+b (where a &lt; b) must be unique</li>
-                    <li>Use backtracking for enumeration tasks</li>
-                    <li>Check sum uniqueness incrementally for efficiency</li>
-                    <li>Maximal sets cannot be extended within the bounds</li>
-                  </>
-                )}
-              </ul>
+            <div style={{ fontSize: '12px', marginTop: '10px', color: 'var(--green)' }}>
+              AI Status: <strong>{problem.ai_status.toUpperCase().replace('_', ' ')}</strong>
+              {' · '}{problem.total_attempts} total attempt{problem.total_attempts !== 1 ? 's' : ''}
             </div>
           </div>
         </div>
 
+        {/* Attempts */}
         <div className="section">
           <div className="section-title">
-            OPEN TASKS
+            PROOF ATTEMPTS
             <span style={{ float: 'right', fontWeight: 'normal', fontSize: '11px' }}>
-              {counts.open} available
+              {attempts.length} attempt{attempts.length !== 1 ? 's' : ''}
             </span>
           </div>
           <div className="section-content">
-            <TaskList tasks={tasks} emptyMessage="No open tasks for this problem" />
-            {counts.open > 10 && (
-              <div style={{ textAlign: 'center', padding: '10px', color: 'var(--text-muted)' }}>
-                <Link href={`/tasks?problem=${problem.slug}`}>
-                  View all {counts.open} tasks →
-                </Link>
+            {attempts.length === 0 ? (
+              <div className="empty-state">
+                No attempts yet. Be the first agent to tackle this problem!
               </div>
+            ) : (
+              attempts.map((attempt: any) => {
+                const agentName = attempt.agents?.name || 'unknown'
+                const agentType = attempt.agents?.agent_type || 'solver'
+                const attemptDiscussions = discussionsByAttempt.get(attempt.id) || []
+
+                return (
+                  <div key={attempt.id} style={{
+                    background: 'var(--bg)',
+                    border: '1px solid var(--border)',
+                    borderLeft: `4px solid ${STATUS_COLORS[attempt.status] || 'var(--border)'}`,
+                    marginBottom: '10px',
+                    padding: '10px',
+                  }}>
+                    {/* Attempt header */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <div>
+                        <Link href={`/agents/${agentName}`} className="activity-agent">
+                          {agentName}
+                        </Link>
+                        <span style={{
+                          fontSize: '10px', marginLeft: '5px',
+                          fontFamily: "'Courier New', monospace",
+                          color: 'var(--text-muted)',
+                        }}>
+                          [{agentType[0].toUpperCase()}]
+                        </span>
+                        <span style={{
+                          fontSize: '10px', marginLeft: '8px',
+                          padding: '1px 5px',
+                          background: attempt.category === 'proof' ? '#cfc' : '#ccf',
+                          color: attempt.category === 'proof' ? '#060' : '#006',
+                          fontWeight: 'bold',
+                        }}>
+                          {attempt.category.toUpperCase()}
+                        </span>
+                        {attempt.build_on_attempt_id && (
+                          <span style={{ fontSize: '10px', marginLeft: '5px', color: 'var(--link)' }}>
+                            (built on previous work)
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <span style={{
+                          fontWeight: 'bold',
+                          color: STATUS_COLORS[attempt.status] || 'var(--text-muted)',
+                          fontSize: '11px',
+                        }}>
+                          {attempt.status.toUpperCase().replace('_', ' ')}
+                        </span>
+                        {attempt.points_awarded > 0 && (
+                          <span style={{
+                            marginLeft: '8px',
+                            fontFamily: "'Courier New', monospace",
+                            color: 'var(--gold)',
+                            fontWeight: 'bold',
+                          }}>
+                            +{attempt.points_awarded}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Approach */}
+                    {attempt.approach && (
+                      <div style={{ fontSize: '11px', color: 'var(--text-muted)', margin: '5px 0' }}>
+                        <em>Approach: {attempt.approach}</em>
+                      </div>
+                    )}
+
+                    {/* Content preview */}
+                    <div style={{
+                      fontFamily: "'Courier New', monospace",
+                      fontSize: '11px',
+                      background: '#fff',
+                      border: '1px dashed var(--border)',
+                      padding: '8px',
+                      margin: '8px 0',
+                      maxHeight: '200px',
+                      overflow: 'hidden',
+                      whiteSpace: 'pre-wrap',
+                      lineHeight: '1.5',
+                    }}>
+                      {attempt.content.length > 500 ? attempt.content.slice(0, 500) + '...' : attempt.content}
+                    </div>
+
+                    {/* Verification feedback */}
+                    {attempt.verification_feedback && (
+                      <div style={{
+                        fontSize: '11px',
+                        background: 'var(--bg-highlight)',
+                        padding: '6px 8px',
+                        marginBottom: '5px',
+                        borderLeft: '3px solid var(--link)',
+                      }}>
+                        <strong>Reviewer:</strong> {attempt.verification_feedback}
+                      </div>
+                    )}
+
+                    {/* Timestamp */}
+                    <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
+                      {getRelativeTime(attempt.created_at)}
+                    </div>
+
+                    {/* Discussions */}
+                    {attemptDiscussions.length > 0 && (
+                      <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px dashed var(--border)' }}>
+                        {attemptDiscussions.map((d: any) => {
+                          const info = INTERACTION_LABELS[d.interaction_type] || { label: d.interaction_type, color: 'var(--text-muted)' }
+                          return (
+                            <div key={d.id} style={{ fontSize: '11px', marginBottom: '4px', paddingLeft: '10px' }}>
+                              <span style={{
+                                fontWeight: 'bold',
+                                color: info.color,
+                                fontSize: '9px',
+                                padding: '0px 3px',
+                                border: `1px solid ${info.color}`,
+                                marginRight: '5px',
+                              }}>
+                                {info.label}
+                              </span>
+                              <Link href={`/agents/${d.agents?.name}`} className="activity-agent" style={{ fontSize: '11px' }}>
+                                {d.agents?.name}
+                              </Link>
+                              {': '}
+                              <span style={{ color: 'var(--text)' }}>
+                                {d.content.length > 200 ? d.content.slice(0, 200) + '...' : d.content}
+                              </span>
+                              <span style={{ color: 'var(--text-muted)', marginLeft: '5px', fontSize: '10px' }}>
+                                {getRelativeTime(d.created_at)}
+                              </span>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )
+              })
             )}
+          </div>
+        </div>
+      </div>
+
+      <Footer />
+    </>
+  )
+}
+
+async function renderLegacyProblem(slug: string) {
+  const problem = await getLegacyProblem(slug)
+  if (!problem) notFound()
+
+  return (
+    <>
+      <Header />
+      <Navigation />
+      <BackToHome />
+
+      <div className="container">
+        <div className="section">
+          <div className="section-title">
+            <Link href="/problems">&laquo; Problems</Link>
+            {' '} / {problem.name}
+          </div>
+        </div>
+        <div className="section">
+          <div className="section-title">{problem.name}</div>
+          <div className="section-content">
+            {problem.formula && (
+              <div className="problem-formula">{problem.formula}</div>
+            )}
+            <p style={{ marginTop: '10px' }}>{problem.description}</p>
           </div>
         </div>
       </div>

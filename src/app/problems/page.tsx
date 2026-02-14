@@ -1,50 +1,22 @@
-import { Header, Navigation, Footer, ProblemBox, BackToHome } from '@/components'
+import { Header, Navigation, Footer, BackToHome, ErdosProblemCard } from '@/components'
 import { supabaseAdmin } from '@/lib/supabase/server'
-import type { Problem } from '@/types/database'
 
-interface ProblemWithCounts extends Problem {
-  openTasks: number
-  completedTasks: number
-}
+export const dynamic = 'force-dynamic'
 
-async function getProblems(): Promise<ProblemWithCounts[]> {
-  const supabase = supabaseAdmin
-
-  const { data: problems } = await supabase
-    .from('problems')
+async function getErdosProblems() {
+  const { data: problems } = await supabaseAdmin
+    .from('erdos_problems')
     .select('*')
-    .order('created_at', { ascending: true })
+    .order('erdos_number', { ascending: true })
 
-  if (!problems) return []
-
-  const problemsWithCounts = await Promise.all(
-    problems.map(async (problem: Problem) => {
-      const [{ count: openTasks }, { count: completedTasks }] = await Promise.all([
-        supabase
-          .from('tasks')
-          .select('*', { count: 'exact', head: true })
-          .eq('problem_id', problem.id)
-          .eq('status', 'open'),
-        supabase
-          .from('tasks')
-          .select('*', { count: 'exact', head: true })
-          .eq('problem_id', problem.id)
-          .eq('status', 'completed'),
-      ])
-
-      return {
-        ...problem,
-        openTasks: openTasks || 0,
-        completedTasks: completedTasks || 0,
-      }
-    })
-  )
-
-  return problemsWithCounts
+  return problems || []
 }
 
 export default async function ProblemsPage() {
-  const problems = await getProblems()
+  const problems = await getErdosProblems()
+
+  const open = problems.filter(p => p.status === 'open')
+  const solved = problems.filter(p => p.status !== 'open')
 
   return (
     <>
@@ -55,30 +27,59 @@ export default async function ProblemsPage() {
       <div className="container">
         <div className="section">
           <div className="section-title">
-            ALL PROBLEMS
+            OPEN ERDŐS PROBLEMS
             <span style={{ float: 'right', fontWeight: 'normal', fontSize: '11px' }}>
-              {problems.length} problems
+              {open.length} open · {solved.length} solved/proved · {problems.length} total
             </span>
           </div>
           <div className="section-content">
-            {problems.length === 0 ? (
-              <div className="empty-state">No problems available yet.</div>
+            {open.length === 0 ? (
+              <div className="empty-state">No open problems loaded yet.</div>
             ) : (
-              problems.map((problem: ProblemWithCounts) => (
-                <ProblemBox
-                  key={problem.id}
-                  slug={problem.slug}
-                  name={problem.name}
-                  formula={problem.formula}
-                  status={problem.status}
-                  description={problem.description}
-                  openTasks={problem.openTasks}
-                  completedTasks={problem.completedTasks}
+              open.map((p: any) => (
+                <ErdosProblemCard
+                  key={p.erdos_number}
+                  erdos_number={p.erdos_number}
+                  title={p.title}
+                  statement={p.statement}
+                  tags={p.tags || []}
+                  status={p.status}
+                  prize={p.prize}
+                  difficulty={p.difficulty}
+                  ai_status={p.ai_status}
+                  total_attempts={p.total_attempts}
                 />
               ))
             )}
           </div>
         </div>
+
+        {solved.length > 0 && (
+          <div className="section">
+            <div className="section-title">
+              SOLVED / PROVED
+              <span style={{ float: 'right', fontWeight: 'normal', fontSize: '11px' }}>
+                {solved.length} problems
+              </span>
+            </div>
+            <div className="section-content">
+              {solved.map((p: any) => (
+                <ErdosProblemCard
+                  key={p.erdos_number}
+                  erdos_number={p.erdos_number}
+                  title={p.title}
+                  statement={p.statement}
+                  tags={p.tags || []}
+                  status={p.status}
+                  prize={p.prize}
+                  difficulty={p.difficulty}
+                  ai_status={p.ai_status}
+                  total_attempts={p.total_attempts}
+                />
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       <Footer />

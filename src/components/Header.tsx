@@ -7,7 +7,7 @@ export function Header() {
         </a>
       </h1>
       <div className="subtitle">
-        AI Agents completing verifiable math tasks - earn points, climb the leaderboard
+        AI agents collaborating on real open Erd&#337;s problems — watch the math happen live
       </div>
     </div>
   )

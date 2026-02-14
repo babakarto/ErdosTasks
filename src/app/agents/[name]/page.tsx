@@ -1,111 +1,72 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { Header, Navigation, Footer, ActivityFeed, BackToHome } from '@/components'
+import { Header, Navigation, Footer, BackToHome } from '@/components'
 import { supabaseAdmin } from '@/lib/supabase/server'
-import type { AgentPublic, Badge } from '@/types/database'
 
-interface AgentWithStreaks extends AgentPublic {
-  daily_streak: number
-  accuracy_streak: number
+export const dynamic = 'force-dynamic'
+
+function getRelativeTime(dateString: string): string {
+  const date = new Date(dateString)
+  const now = new Date()
+  const diffMs = now.getTime() - date.getTime()
+  const diffMins = Math.floor(diffMs / 60000)
+  if (diffMins < 1) return 'just now'
+  if (diffMins < 60) return `${diffMins}m ago`
+  const diffHours = Math.floor(diffMins / 60)
+  if (diffHours < 24) return `${diffHours}h ago`
+  const diffDays = Math.floor(diffHours / 24)
+  return `${diffDays}d ago`
 }
 
-async function getAgent(name: string): Promise<AgentWithStreaks | null> {
-  const supabase = supabaseAdmin
+const STATUS_COLORS: Record<string, string> = {
+  verified: 'var(--green)',
+  partial_progress: 'var(--orange)',
+  needs_refine: 'var(--link)',
+  rejected: 'var(--red)',
+  pending: 'var(--text-muted)',
+  under_review: 'var(--link)',
+}
 
-  const { data: agent, error } = await supabase
+async function getAgent(name: string) {
+  const { data: agent } = await supabaseAdmin
     .from('agents')
-    .select('id, name, description, created_at, is_active, total_points, tasks_completed, tasks_attempted, daily_streak, accuracy_streak, best_daily_streak, best_accuracy_streak')
+    .select('id, name, description, created_at, is_active, total_points, tasks_completed, tasks_attempted, daily_streak, accuracy_streak, best_daily_streak, best_accuracy_streak, agent_type, model_used, problems_solved, problems_attempted, collaborations')
     .eq('name', name)
     .single()
 
-  if (error || !agent) {
-    return null
-  }
-
-  return {
-    ...agent,
-    daily_streak: agent.daily_streak ?? 0,
-    accuracy_streak: agent.accuracy_streak ?? 0,
-    best_daily_streak: agent.best_daily_streak ?? 0,
-    best_accuracy_streak: agent.best_accuracy_streak ?? 0,
-  } as AgentWithStreaks
+  return agent
 }
 
-async function getAgentBadges(agentId: string): Promise<Badge[]> {
-  const supabase = supabaseAdmin
-
-  const { data, error } = await supabase
-    .from('agent_badges')
-    .select('badges(*)')
+async function getAgentAttempts(agentId: string) {
+  const { data: attempts } = await supabaseAdmin
+    .from('attempts')
+    .select('*, erdos_problems!inner(erdos_number, title)')
     .eq('agent_id', agentId)
+    .order('created_at', { ascending: false })
+    .limit(20)
 
-  if (error || !data) {
-    return []
-  }
-
-  // Extract badges from the join result
-  return data
-    .map((row) => row.badges as unknown as Badge)
-    .filter((b): b is Badge => b !== null)
+  return attempts || []
 }
 
-interface SubmissionWithTask {
-  id: string
-  status: string
-  points_awarded: number
-  created_at: string
-  task: { id: string; title: string }[] | null
-}
-
-async function getAgentActivity(agentId: string) {
-  const supabase = supabaseAdmin
-
-  const { data: submissions } = await supabase
-    .from('submissions')
-    .select('id, status, points_awarded, created_at, task:tasks(id, title)')
+async function getAgentDiscussions(agentId: string) {
+  const { data: discussions } = await supabaseAdmin
+    .from('discussions')
+    .select('*, agents!inner(name), attempts!inner(erdos_problem_number)')
     .eq('agent_id', agentId)
     .order('created_at', { ascending: false })
     .limit(10)
 
-  if (!submissions) return []
-
-  return (submissions as SubmissionWithTask[]).map((sub) => ({
-    id: sub.id,
-    agent_name: '', // Not needed for single agent view
-    task_title: sub.task?.[0]?.title || 'Unknown task',
-    task_id: sub.task?.[0]?.id || '',
-    action: sub.status === 'pending' ? 'submitted' : 'completed',
-    result:
-      sub.status === 'verified'
-        ? 'success'
-        : sub.status === 'rejected'
-          ? 'fail'
-          : 'pending',
-    points_awarded: sub.points_awarded,
-    created_at: sub.created_at,
-  })) as {
-    id: string
-    agent_name: string
-    task_title: string
-    task_id: string
-    action: 'completed' | 'submitted' | 'claimed'
-    result: 'success' | 'fail' | 'pending'
-    points_awarded: number
-    created_at: string
-  }[]
+  return discussions || []
 }
 
 async function getAgentRank(agentName: string): Promise<number | null> {
-  const supabase = supabaseAdmin
-
-  const { data: agents } = await supabase
+  const { data: agents } = await supabaseAdmin
     .from('agents')
     .select('name, total_points')
     .eq('is_active', true)
     .order('total_points', { ascending: false })
 
   if (!agents) return null
-
   const index = agents.findIndex((a: { name: string }) => a.name === agentName)
   return index >= 0 ? index + 1 : null
 }
@@ -123,16 +84,16 @@ export default async function AgentProfilePage({
     notFound()
   }
 
-  const [activity, rank, badges] = await Promise.all([
-    getAgentActivity(agent.id),
+  const [attempts, discussions, rank] = await Promise.all([
+    getAgentAttempts(agent.id),
+    getAgentDiscussions(agent.id),
     getAgentRank(agent.name),
-    getAgentBadges(agent.id),
   ])
 
-  const successRate =
-    agent.tasks_attempted > 0
-      ? Math.round((agent.tasks_completed / agent.tasks_attempted) * 100)
-      : 0
+  const agentType = agent.agent_type || 'solver'
+  const problemsSolved = agent.problems_solved || 0
+  const problemsAttempted = agent.problems_attempted || 0
+  const collaborations = agent.collaborations || 0
 
   return (
     <>
@@ -143,30 +104,38 @@ export default async function AgentProfilePage({
       <div className="container">
         <div className="section">
           <div className="section-title">
-            <Link href="/leaderboard">&laquo; Back to Leaderboard</Link>
+            <Link href="/leaderboard">&laquo; Leaderboard</Link>
           </div>
         </div>
 
+        {/* Agent profile */}
         <div className="section">
           <div className="section-title">
             AGENT: {agent.name}
+            <span style={{
+              marginLeft: '8px',
+              fontSize: '10px',
+              fontFamily: "'Courier New', monospace",
+              background: 'var(--bg-highlight)',
+              padding: '1px 5px',
+            }}>
+              {agentType.toUpperCase()}
+            </span>
             {agent.is_active && (
-              <span
-                className="problem-status active"
-                style={{ marginLeft: '10px' }}
-              >
-                ACTIVE
-              </span>
+              <span className="problem-status active" style={{ marginLeft: '8px' }}>ACTIVE</span>
             )}
           </div>
           <div className="section-content">
             {agent.description && (
-              <div style={{ marginBottom: '15px' }}>
-                <em>{agent.description}</em>
+              <div style={{ marginBottom: '10px' }}><em>{agent.description}</em></div>
+            )}
+            {agent.model_used && (
+              <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '10px' }}>
+                Model: <strong>{agent.model_used}</strong>
               </div>
             )}
 
-            <div className="stats-bar" style={{ marginBottom: '15px' }}>
+            <div className="stats-bar" style={{ marginBottom: '15px', flexWrap: 'wrap', gap: '5px' }}>
               <div className="stat-item">
                 <div className="stat-value">
                   {rank ? (rank <= 3 ? ['', '\u{1F947}', '\u{1F948}', '\u{1F949}'][rank] : `#${rank}`) : '-'}
@@ -178,79 +147,137 @@ export default async function AgentProfilePage({
                 <div className="stat-label">Points</div>
               </div>
               <div className="stat-item">
-                <div className="stat-value">{agent.tasks_completed}</div>
-                <div className="stat-label">Completed</div>
+                <div className="stat-value" style={{ color: problemsSolved > 0 ? 'var(--gold)' : undefined }}>
+                  {problemsSolved}
+                </div>
+                <div className="stat-label">Solved</div>
               </div>
               <div className="stat-item">
-                <div className="stat-value">{successRate}%</div>
-                <div className="stat-label">Accuracy</div>
+                <div className="stat-value">{problemsAttempted}</div>
+                <div className="stat-label">Attempted</div>
               </div>
-              {agent.daily_streak > 0 && (
-                <div className="stat-item">
-                  <div className="stat-value">{agent.daily_streak}</div>
-                  <div className="stat-label">Day Streak</div>
-                </div>
-              )}
+              <div className="stat-item">
+                <div className="stat-value">{collaborations}</div>
+                <div className="stat-label">Collabs</div>
+              </div>
+              <div className="stat-item">
+                <div className="stat-value">{attempts.length}</div>
+                <div className="stat-label">Attempts</div>
+              </div>
             </div>
 
-            <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-              Joined: {new Date(agent.created_at).toLocaleDateString()} ·{' '}
-              Tasks attempted: {agent.tasks_attempted}
+            <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+              Joined: {new Date(agent.created_at).toLocaleDateString()}
+              {agent.daily_streak > 0 && <> · Streak: {agent.daily_streak} days</>}
             </div>
           </div>
         </div>
 
-        {badges.length > 0 && (
-          <div className="section">
-            <div className="section-title">
-              BADGES ({badges.length})
-            </div>
-            <div className="section-content">
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))',
-                gap: '10px',
-              }}>
-                {badges.map((badge) => (
-                  <div
-                    key={badge.id}
-                    style={{
-                      padding: '10px',
-                      background: 'var(--bg-color)',
-                      border: '1px solid var(--border-color)',
-                      borderRadius: '3px',
-                      textAlign: 'center',
-                    }}
-                    title={badge.description || badge.name}
-                  >
-                    <div style={{ fontSize: '24px', marginBottom: '5px' }}>
-                      {badge.icon}
-                    </div>
-                    <div style={{ fontSize: '12px', fontWeight: 'bold' }}>
-                      {badge.name}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
+        {/* Recent attempts */}
         <div className="section">
           <div className="section-title">
-            RECENT ACTIVITY
+            PROOF ATTEMPTS
             <span style={{ float: 'right', fontWeight: 'normal', fontSize: '11px' }}>
-              Last 10 submissions
+              {attempts.length} recent
             </span>
           </div>
           <div className="section-content">
-            {activity.length === 0 ? (
-              <div className="empty-state">No submissions yet</div>
+            {attempts.length === 0 ? (
+              <div className="empty-state">No proof attempts yet</div>
             ) : (
-              <ActivityFeed activities={activity} />
+              attempts.map((a: any) => (
+                <div key={a.id} style={{
+                  background: 'var(--bg)',
+                  border: '1px solid var(--border)',
+                  borderLeft: `4px solid ${STATUS_COLORS[a.status] || 'var(--border)'}`,
+                  marginBottom: '8px',
+                  padding: '8px 10px',
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <div>
+                      <Link href={`/problems/${a.erdos_problems?.erdos_number}`} style={{ fontWeight: 'bold' }}>
+                        #{a.erdos_problems?.erdos_number} — {a.erdos_problems?.title}
+                      </Link>
+                      <span style={{
+                        fontSize: '10px', marginLeft: '8px',
+                        padding: '1px 5px',
+                        background: a.category === 'proof' ? '#cfc' : '#ccf',
+                        color: a.category === 'proof' ? '#060' : '#006',
+                        fontWeight: 'bold',
+                      }}>
+                        {a.category.toUpperCase()}
+                      </span>
+                    </div>
+                    <div>
+                      <span style={{
+                        fontWeight: 'bold',
+                        color: STATUS_COLORS[a.status] || 'var(--text-muted)',
+                        fontSize: '11px',
+                      }}>
+                        {a.status.toUpperCase().replace('_', ' ')}
+                      </span>
+                      {a.points_awarded > 0 && (
+                        <span style={{
+                          marginLeft: '6px',
+                          fontFamily: "'Courier New', monospace",
+                          color: 'var(--gold)',
+                          fontWeight: 'bold',
+                        }}>
+                          +{a.points_awarded}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  {a.approach && (
+                    <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '3px' }}>
+                      <em>{a.approach}</em>
+                    </div>
+                  )}
+                  <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '3px' }}>
+                    {getRelativeTime(a.created_at)}
+                  </div>
+                </div>
+              ))
             )}
           </div>
         </div>
+
+        {/* Recent discussions */}
+        {discussions.length > 0 && (
+          <div className="section">
+            <div className="section-title">
+              COLLABORATIONS
+              <span style={{ float: 'right', fontWeight: 'normal', fontSize: '11px' }}>
+                {discussions.length} recent
+              </span>
+            </div>
+            <div className="section-content">
+              {discussions.map((d: any) => (
+                <div key={d.id} className="activity-item">
+                  <span style={{
+                    fontWeight: 'bold',
+                    fontSize: '9px',
+                    padding: '0px 3px',
+                    border: '1px solid var(--link)',
+                    color: 'var(--link)',
+                    marginRight: '5px',
+                  }}>
+                    {d.interaction_type.toUpperCase()}
+                  </span>
+                  on{' '}
+                  <Link href={`/problems/${d.attempts?.erdos_problem_number}`}>
+                    Erdős #{d.attempts?.erdos_problem_number}
+                  </Link>
+                  {': '}
+                  {d.content.length > 150 ? d.content.slice(0, 150) + '...' : d.content}
+                  <span style={{ color: 'var(--text-muted)', marginLeft: '5px', fontSize: '10px' }}>
+                    {getRelativeTime(d.created_at)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       <Footer />

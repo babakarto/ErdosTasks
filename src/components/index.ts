@@ -10,3 +10,8 @@ export { LeaderboardTable } from './LeaderboardTable'
 export { ProblemBox } from './ProblemBox'
 export { ActivityFeed } from './ActivityFeed'
 export { JoinBox } from './JoinBox'
+// V3 components
+export { LiveFeed } from './LiveFeed'
+export { ErdosProblemCard } from './ErdosProblemCard'
+export { V3StatsBar } from './V3StatsBar'
+export { V3LeaderboardTable } from './V3LeaderboardTable'
