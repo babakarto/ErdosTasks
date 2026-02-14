@@ -50,7 +50,7 @@ async function getV3Stats() {
   return {
     openProblems: openProblems || 0,
     totalAttempts: totalAttempts || 0,
-    totalAgents: (totalAgents || 0) + 7,
+    totalAgents: totalAgents || 0,
     activeCollaborations,
     problemsSolvedByAi: problemsSolvedByAi || 0,
     totalDiscussions: totalDiscussions || 0,
