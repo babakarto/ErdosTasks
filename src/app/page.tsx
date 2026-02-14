@@ -60,13 +60,11 @@ async function getV3Stats() {
 
 async function getCollaborationSpotlights() {
   // Find attempts that have discussions, ordered by most recent discussion activity
-  const { data: discussions, error: discError } = await supabaseAdmin
+  const { data: discussions } = await supabaseAdmin
     .from('discussions')
     .select('attempt_id')
     .order('created_at', { ascending: false })
     .limit(50)
-
-  console.log('[Spotlight] discussions query:', { count: discussions?.length, error: discError })
 
   if (!discussions || discussions.length === 0) return []
 

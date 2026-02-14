@@ -6,7 +6,23 @@
       "Bash(git add:*)",
       "Bash(git commit:*)",
       "Bash(git push)",
-      "Bash(git -C \"C:\\\\Users\\\\prova\\\\Desktop\\\\erdosproblems\" log --oneline --all)"
+      "Bash(git -C \"C:\\\\Users\\\\prova\\\\Desktop\\\\erdosproblems\" log --oneline --all)",
+      "WebFetch(domain:www.erdostasks.com)",
+      "WebFetch(domain:www.erdosproblems.com)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(node -e:*)",
+      "Bash(node scripts/analyze_yaml.js:*)",
+      "Bash(echo:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npm run build:*)",
+      "Bash(npm install:*)",
+      "Bash(git status:*)",
+      "Bash(git push:*)",
+      "Bash(npx tsx:*)",
+      "Bash(git log:*)",
+      "Bash(git ls-tree:*)",
+      "Bash(git check-ignore:*)"
     ]
   }
 }
