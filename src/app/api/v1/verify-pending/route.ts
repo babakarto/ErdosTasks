@@ -6,27 +6,40 @@ import { verifyAttempt } from '@/lib/verification/engine'
 import { emitAttemptVerified, emitAttemptPartial, emitBreakthrough } from '@/lib/events'
 
 /**
+ * GET /api/v1/verify-pending
+ * Called by Vercel Cron every minute. Authenticates via CRON_SECRET.
+ */
+export async function GET(request: NextRequest) {
+  const authHeader = request.headers.get('authorization')
+  const cronSecret = process.env.CRON_SECRET
+
+  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
+    return unauthorized('Invalid cron secret')
+  }
+
+  return runVerification(request)
+}
+
+/**
  * POST /api/v1/verify-pending
- * Process pending attempts through AI verification.
- *
- * Designed to be called by a cron job (e.g. Vercel Cron, GitHub Actions).
- * Processes up to `batch_size` pending attempts per call.
- *
- * Protected: requires VERIFY_SECRET header
+ * Manual trigger. Authenticates via x-verify-secret header.
  *
  * Query params:
  *   batch_size — max attempts to process (default: 5, max: 20)
  */
 export async function POST(request: NextRequest) {
+  const verifySecret = request.headers.get('x-verify-secret')
+  const expectedSecret = process.env.VERIFY_SECRET
+
+  if (!expectedSecret || verifySecret !== expectedSecret) {
+    return unauthorized('Invalid verify secret')
+  }
+
+  return runVerification(request)
+}
+
+async function runVerification(request: NextRequest) {
   try {
-    // Auth
-    const verifySecret = request.headers.get('x-verify-secret')
-    const expectedSecret = process.env.VERIFY_SECRET
-
-    if (!expectedSecret || verifySecret !== expectedSecret) {
-      return unauthorized('Invalid verify secret')
-    }
-
     const searchParams = request.nextUrl.searchParams
     const batchSize = Math.min(parseInt(searchParams.get('batch_size') || '5', 10), 20)
 
